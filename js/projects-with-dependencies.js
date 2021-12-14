@@ -28,6 +28,9 @@ const revisions = argv.locators.map(locator => {
       refs: ['master'],
       refs_type: 'branch',
     }
+  }).then(result => {
+    console.error(`Fetched revisions for ${locator}`);
+    return result;
   });
 });
 
@@ -39,7 +42,9 @@ Promise.all(revisions)
     return Promise.all(res.map(([dependency, revisions]) => {
       if (!result[dependency]) result[dependency] = new Set();
       return Promise.all(revisions.branch.master.map(rev => {
+        console.error(`Fetching parent projects for ${rev.locator}...`);
         return fossa.getParentProjects(rev.locator).then(parents => {
+          console.error(`Fetched parent projects for ${rev.locator}`);
           parents.forEach(p => result[dependency].add(projectURL(p.locator)));
         });
       }));
