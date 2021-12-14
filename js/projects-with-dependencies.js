@@ -51,10 +51,11 @@ Promise.all(revisions)
     })).then(_ => result);
 }).then(res => {
   console.log('\n');
-  Object.keys(res).forEach(dependency => {
+  Object.keys(res).sort().forEach(dependency => {
     if (res[dependency].size) {
-      console.log(dependency);
-      console.log(Array.from(res[dependency]).join('\n') + '\n');
+      const projects = Array.from(res[dependency]).sort();
+      console.log(`${dependency} (${projects.length})`);
+      console.log(projects.join('\n') + '\n');
     }
   })
 }).catch(err => console.error(err));
