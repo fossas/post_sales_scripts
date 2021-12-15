@@ -1,0 +1,28 @@
+{
+  "name": "post-sales-scripts",
+  "version": "0.0.0",
+  "description": "Scripts to automate common tasks required by FOSSA customers",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fossas/post_sales_scripts.git"
+  },
+  "author": "Rodrigo López Dato <rodrigo@fossa.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fossas/post_sales_scripts/issues"
+  },
+  "homepage": "https://github.com/fossas/post_sales_scripts#readme",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "dotenv-safe": "^8.2.0",
+    "lodash.groupby": "^4.6.0",
+    "lodash.keyby": "^4.6.0",
+    "qs": "^6.10.1",
+    "yargs": "^17.2.1"
+  },
+  "devDependencies": {}
+}
