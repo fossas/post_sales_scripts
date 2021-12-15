@@ -28,6 +28,7 @@ const dependencies = argv.locators.map(locator => {
 Promise.all(dependencies).then(_ => {
   // all dependencies exist, but they might not have any references
   // dependencies without references are ignored
+  console.error("Fetched all dependencies, fetching revisions for each dependency...");
 
   const revisions = argv.locators.map(locator => {
     console.error(`Fetching revisions for ${locator}...`);
