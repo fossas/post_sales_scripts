@@ -29,6 +29,9 @@ const fossa = (options) => {
 
   return {
     options,
+    async getProject(locator, params) {
+      return axios.get(`/projects/${encodeURIComponent(locator)}`).then(res => res.data);
+    },
     async getProjects(params) {
       return axios.get('/projects', params).then(res => res.data);
     },
