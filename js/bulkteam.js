@@ -13,7 +13,7 @@ const argv = yargs(hideBin(process.argv))
   .parse();
 
 require('dotenv-safe').config();
-const fossa = require('./fossa')(process.env.FOSSA_API_TOKEN);
+const fossa = require('./fossa')({token: process.env.FOSSA_API_TOKEN});
 
 const targetURLs = fs.readFile(argv.file, 'utf8').then(f => 
   f.replace(/\r\n/g,'\n').split('\n').reduce((obj, str) => { obj[str] = true; return obj; }, {})
