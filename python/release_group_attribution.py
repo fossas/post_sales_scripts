@@ -8,7 +8,7 @@ result = "PREVIEW" 	# EMAIL | PREVIEW | (result will be previewed if left blank)
 
 params = "&email=true" if result == "EMAIL" else "&preview=true"
 
-api_token = "7bb41698795dd03f00bdc2bb66375c0f"
+api_token = ""
 
 url = f"{base_url}/{group_id}/release/{release_id}/attribution/{format}?includeDirectDependencies=true&includeDeepDependencies=true{params}"
 
