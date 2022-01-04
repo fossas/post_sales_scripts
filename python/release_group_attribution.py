@@ -1,15 +1,16 @@
+import requests
+
 base_url = "https://app.fossa.com/api/project_group"
 group_id = "480"
 release_id = "711"
-format = "TXT" 		# HTML | MD | PDF | CSV | TXT | SPDX
-preview = "true" 	# API call will return a preview response
-email = "false"		# API call wil email the report to the user who owns the API token
+format = "MD" 		# HTML | MD | PDF | CSV | TXT | SPDX
+result = "PREVIEW" 	# EMAIL | PREVIEW | (result will be previewed if left blank)
 
-api_token = ""
+params = "&email=true" if result == "EMAIL" else "&preview=true"
 
-url = f"{base_url}/{group_id}/release/{release_id}/attribution/{format}?preview={preview}&email={email}"
+api_token = "7bb41698795dd03f00bdc2bb66375c0f"
 
-import requests
+url = f"{base_url}/{group_id}/release/{release_id}/attribution/{format}?includeDirectDependencies=true&includeDeepDependencies=true{params}"
 
 payload={}
 headers = {
