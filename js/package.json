@@ -18,11 +18,11 @@
   "homepage": "https://github.com/fossas/post_sales_scripts#readme",
   "dependencies": {
     "axios": "^0.24.0",
+    "compare-versions": "^4.1.2",
     "dotenv-safe": "^8.2.0",
     "lodash.groupby": "^4.6.0",
     "lodash.keyby": "^4.6.0",
     "qs": "^6.10.1",
     "yargs": "^17.2.1"
-  },
-  "devDependencies": {}
+  }
 }

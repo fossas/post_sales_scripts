@@ -7,6 +7,7 @@
 // specific versions.
 
 const yargs = require('yargs/yargs');
+const compareVersions = require('compare-versions');
 const { hideBin } = require('yargs/helpers');
 
 const argv = yargs(hideBin(process.argv))
@@ -93,6 +94,12 @@ const dependencies = [
 ];
 
 const toLocators = (dependency, revisions) => revisions.map(rev => `${dependency}$${rev}`);
+const compareLocators = (a, b) => {
+  const vA = a.split('$')[1];
+  const vB = b.split('$')[2];
+  if (compareVersions.validate(vA) && compareVersions.validate(vB)) return compareVersions(vA, vB);
+  return -1;
+};
 const result = {};
 Promise.all(dependencies.map(([dependency, revisions]) => {
 
@@ -110,7 +117,7 @@ Promise.all(dependencies.map(([dependency, revisions]) => {
       parents.forEach(p => result[loc].add(projectURL(p.locator)));
     })
   })).then(_ => {
-    Object.keys(result).sort().forEach(locator => {
+    Object.keys(result).sort(compareLocators).forEach(locator => {
       if (result[locator].size) {
         const projects = Array.from(result[locator]).sort();
         console.log(`${locator} (${projects.length})`);
