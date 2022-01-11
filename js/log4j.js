@@ -112,6 +112,7 @@ Promise.all(dependencies.map(([dependency, revisions]) => {
         console.error(err.response.data);
         return Promise.resolve([]);
       }
+      return Promise.reject(err);
     }).then(parents => {
       console.error(`Fetched parent projects for ${loc}`);
       parents.forEach(p => result[loc].add(projectURL(p.locator)));
