@@ -14,10 +14,6 @@ if [ -z "$FOSSA_API_KEY" ]; then
     exit 1
 fi
 
-if [ -z "$title" ]; then
-    echo "Usage: org \"{title}\" {FOSSA endpoint (optional)}" 1>&2
-    exit 1
-fi
 
 # There's no API to get the caller's user ID, and it's not possible to extract a
 # user ID from an API token. As a workaround, we get the list of users belonging
@@ -35,6 +31,10 @@ if [ "$currentOrgTitle" == "$title" ]; then
     exit 0
 fi
 echo "Current organization: \"$currentOrgTitle\" ($(jq -r .organization.id <<< $user))" 1>&2
+
+if [ -z "$title" ]; then
+    exit 0
+fi
 
 orgs=$(curl --silent --fail --show-error --location \
     --get --data-urlencode "title=$title" "$endpoint"/api/organizations \
