@@ -107,11 +107,11 @@ Promise.all(dependencies.map(([dependency, revisions]) => {
     if (!result[loc]) result[loc] = new Set();
     console.error(`Fetching parent projects for ${loc}...`);
     return fossa.getParentProjects(loc).catch(err => {
+      console.error(`Failed to fetch parent projects: ${err}`);
       if (err.response.status === 404) {
         console.error(err.response.data);
         return Promise.resolve([]);
       }
-      return Promise.reject(err);
     }).then(parents => {
       console.error(`Fetched parent projects for ${loc}`);
       parents.forEach(p => result[loc].add(projectURL(p.locator)));
