@@ -39,13 +39,9 @@ fi
 orgs=$(curl --silent --fail --show-error --location \
     --get --data-urlencode "title=$title" "$endpoint"/api/organizations \
     --header "Authorization: Bearer $FOSSA_API_KEY")
-orgsCount=$(jq length <<< "$orgs")
+targetOrg=$(jq --arg t "$title" -r '.[] | select(.title == $t)'<<< "$orgs")
 
-if [ "$orgsCount" -gt 1 ]; then
-    echo "Organization \"$title\" is not an exact match. Matching orgs:" 1>&2
-    jq -r ".[] | .title" <<< "$orgs" 1>&2
-    exit 1
-elif [ "$orgsCount" -eq 0 ]; then
+if [ -z "$targetOrg" ]; then
     echo "Organization \"$title\" not found." 1>&2
     exit 1
 else
