@@ -47,7 +47,7 @@ if [ -z "$targetOrg" ]; then
 else
     targetOrgId=$(jq -r ".[0] | .id" <<< "$orgs")
     currentOrgId=$(jq -r .organization.id <<< $user)
-    if [ $currentOrgId -eq $targetOrgId ]; then
+    if [ "$currentOrgId" = "$targetOrgId" ]; then
         currentOrgTitle=$(jq -r .organization.title <<< $user)
         echo "Already on organization \"$currentOrgTitle\", nothing to do" 1>&2
         exit 0
