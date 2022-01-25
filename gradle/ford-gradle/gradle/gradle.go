@@ -1,13 +1,14 @@
 package gradle
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/apex/log"
-
-	"github.com/fossas/fossa-cli/exec"
 )
 
 type FossaDeps struct {
@@ -57,6 +58,7 @@ func Dependencies(project string, command string) ([]ID, error) {
 		"--quiet",
 		"--offline",
 	}
+
 	stdout, err := Cmd(command, arguments...)
 	if err != nil {
 		return nil, err
@@ -86,8 +88,7 @@ func Dependencies(project string, command string) ([]ID, error) {
 		}
 	}
 
-	// Dedupe the dependencies across all of the different configuratons taking each unique ID.
-	filteredDeps := []ID{}
+	// Dedupe the dependencies across all of the different configurations taking each unique ID.
 	depMap := make(map[ID]bool)
 	for _, set := range configurations {
 		// TODO: Implement configuration sorting:
@@ -96,6 +97,11 @@ func Dependencies(project string, command string) ([]ID, error) {
 		for pack := range set.Transitive {
 			depMap[pack] = true
 		}
+	}
+
+	filteredDeps := []ID{}
+	for dep := range depMap {
+		filteredDeps = append(filteredDeps, dep)
 	}
 
 	return filteredDeps, nil
@@ -117,19 +123,35 @@ func FormatFossaDeps(deps []ID) (FossaDeps, error) {
 
 // Cmd executes the gradle shell command.
 func Cmd(command string, taskArgs ...string) (string, error) {
-	tempcmd := exec.Cmd{
-		Name: command,
-		Argv: taskArgs,
-	}
+	var stdout, stderr string
+	var stdoutBuf []byte
 
-	stdout, stderr, err := exec.Run(tempcmd)
+	log.WithFields(log.Fields{
+		"name": command,
+		"argv": taskArgs,
+	}).Info("called Run")
+
+	stderrBuffer := new(bytes.Buffer)
+	xc := exec.Command(command, taskArgs...)
+	xc.Stderr = stderrBuffer
+	xc.Env = os.Environ()
+	log.Info("Running the command")
+	stdoutBuf, err := xc.Output()
+	stdout = string(stdoutBuf)
+	stderr = stderrBuffer.String()
+
 	if err != nil && stderr != "" {
 		return stdout, fmt.Errorf("Fossa could not run %s %s within the current directory.\nstdout: %s\nstderr: %s", command, strings.Join(taskArgs, " "), stdout, stderr)
 	}
-	return stdout, nil
-}
+	log.WithFields(log.Fields{
+		"stdout": stdout,
+		"stderr": stderr,
+	}).Info("done running")
 
-//go:generate bash -c "genny -in=../../graph/readtree.go gen 'Generic=Dependency' | sed -e 's/package graph/package gradle/' > readtree_generated.go"
+	fmt.Println(stderr)
+	fmt.Println(stdout)
+	return stdout, err
+}
 
 func ParseDependencies(stdout string) ([]Dependency, map[Dependency][]Dependency, error) {
 	r := regexp.MustCompile(`^((?:[|+]? +)*[\\+]--- )(.*)$`)

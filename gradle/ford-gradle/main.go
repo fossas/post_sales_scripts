@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 
-	"github.com/fossas/gradle-script/gradle"
+	"ford-gradle/gradle"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -18,8 +18,7 @@ import (
 var acceptedConfigs = []string{"runtime", "default", "compile"}
 
 func main() {
-	fmt.Println("vim-go")
-	deps, _ := gradle.Dependencies("app", "./gradlew")
+	deps, _ := gradle.Dependencies("grpc-all", "./gradlew")
 	formatted, err := gradle.FormatFossaDeps(deps)
 
 	yamlData, err := yaml.Marshal(&formatted)
