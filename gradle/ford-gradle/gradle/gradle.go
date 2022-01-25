@@ -7,11 +7,18 @@ import (
 
 	"github.com/apex/log"
 
-	"github.com/fossas/fossa-cli/errors"
 	"github.com/fossas/fossa-cli/exec"
-	"github.com/fossas/fossa-cli/graph"
-	"github.com/fossas/fossa-cli/pkg"
 )
+
+type FossaDeps struct {
+	ReferencedDependencies []FossaDepsDependency `yaml:"referenced-dependencies"`
+}
+
+type FossaDepsDependency struct {
+	DepType string `yaml:"type"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+}
 
 // Dependency models a gradle dependency.
 type Dependency struct {
@@ -21,8 +28,30 @@ type Dependency struct {
 	IsProject        bool
 }
 
+// These types mimic the package fossas/fossa-cli/pkg.
+// They may not be optimal and could be refactored, but they accurately gather the dependency graph.
+type Import struct {
+	Target   string
+	Resolved ID
+}
+
+type ID struct {
+	Name     string
+	Revision string
+}
+
+type Package struct {
+	ID      ID
+	Imports []Import
+}
+
+type graph struct {
+	Direct     []Import
+	Transitive map[ID]Package
+}
+
 // Dependencies returns the dependencies of a gradle project
-func Dependencies(project string, command string) (map[string]graph.Deps, error) {
+func Dependencies(project string, command string) ([]ID, error) {
 	arguments := []string{
 		project + ":dependencies",
 		"--quiet",
@@ -34,7 +63,7 @@ func Dependencies(project string, command string) (map[string]graph.Deps, error)
 	}
 
 	// Parse individual configurations.
-	configurations := make(map[string]graph.Deps)
+	configurations := make(map[string]graph)
 	// Divide output into configurations. Each configuration is separated by an
 	// empty line, started with a configuration name (and optional description),
 	// and has a dependency as its second line.
@@ -47,7 +76,7 @@ func Dependencies(project string, command string) (map[string]graph.Deps, error)
 		}
 		config := strings.Split(lines[0], " - ")[0]
 		if lines[1] == "No dependencies" {
-			configurations[config] = graph.Deps{}
+			configurations[config] = graph{}
 		} else if strings.HasPrefix(lines[1], "\\--- ") || strings.HasPrefix(lines[1], "+--- ") {
 			imports, deps, err := ParseDependencies(section)
 			if err != nil {
@@ -57,7 +86,33 @@ func Dependencies(project string, command string) (map[string]graph.Deps, error)
 		}
 	}
 
-	return configurations, nil
+	// Dedupe the dependencies across all of the different configuratons taking each unique ID.
+	filteredDeps := []ID{}
+	depMap := make(map[ID]bool)
+	for _, set := range configurations {
+		// TODO: Implement configuration sorting:
+		// for config, set := range configurations {
+		// if contains(acceptedConfigs, config) {
+		for pack := range set.Transitive {
+			depMap[pack] = true
+		}
+	}
+
+	return filteredDeps, nil
+}
+
+func FormatFossaDeps(deps []ID) (FossaDeps, error) {
+	finalDeps := []FossaDepsDependency{}
+	for _, dep := range deps {
+		finalDeps = append(finalDeps, FossaDepsDependency{
+			DepType: "maven",
+			Name:    dep.Name,
+			Version: dep.Revision,
+		})
+	}
+	formattedDeps := FossaDeps{finalDeps}
+
+	return formattedDeps, nil
 }
 
 // Cmd executes the gradle shell command.
@@ -66,18 +121,11 @@ func Cmd(command string, taskArgs ...string) (string, error) {
 		Name: command,
 		Argv: taskArgs,
 	}
-	fmt.Println(tempcmd)
 
 	stdout, stderr, err := exec.Run(tempcmd)
 	if err != nil && stderr != "" {
-		return stdout, &errors.Error{
-			Cause:           err,
-			Type:            errors.Exec,
-			Troubleshooting: fmt.Sprintf("Fossa could not run `%s %s` within the current directory. Try running this command and ensure that gradle is installed in your environment.\nstdout: %s\nstderr: %s", command, strings.Join(taskArgs, " "), stdout, stderr),
-			Link:            "https://github.com/fossas/fossa-cli/blob/master/docs/integrations/gradle.md#gradle",
-		}
+		return stdout, fmt.Errorf("Fossa could not run %s %s within the current directory.\nstdout: %s\nstderr: %s", command, strings.Join(taskArgs, " "), stdout, stderr)
 	}
-	fmt.Println(stdout, stderr)
 	return stdout, nil
 }
 
@@ -100,7 +148,7 @@ func ParseDependencies(stdout string) ([]Dependency, map[Dependency][]Dependency
 		depth := len(matches[1])
 		if depth%5 != 0 {
 			// Sanity check.
-			return -1, Dependency{}, errors.Errorf("bad depth: %#v %s %#v", depth, line, matches)
+			return -1, Dependency{}, fmt.Errorf("bad depth: %#v %s %#v", depth, line, matches)
 		}
 
 		// Parse dependency.
@@ -152,18 +200,17 @@ func ParseDependencies(stdout string) ([]Dependency, map[Dependency][]Dependency
 }
 
 // NormalizeDependencies turns a dependency map into a FOSSA recognized dependency graph.
-func NormalizeDependencies(imports []Dependency, deps map[Dependency][]Dependency) graph.Deps {
+func NormalizeDependencies(imports []Dependency, deps map[Dependency][]Dependency) graph {
 	// Set direct dependencies.
-	var i []pkg.Import
+	var i []Import
 	for _, dep := range imports {
 		if dep.IsProject {
 			continue
 		}
 
-		i = append(i, pkg.Import{
+		i = append(i, Import{
 			Target: dep.RequestedVersion,
-			Resolved: pkg.ID{
-				Type:     pkg.Gradle,
+			Resolved: ID{
 				Name:     dep.Name,
 				Revision: dep.ResolvedVersion,
 			},
@@ -171,41 +218,39 @@ func NormalizeDependencies(imports []Dependency, deps map[Dependency][]Dependenc
 	}
 
 	// Set transitive dependencies.
-	d := make(map[pkg.ID]pkg.Package)
+	d := make(map[ID]Package)
 	for parent, children := range deps {
 		if parent.IsProject {
 			continue
 		}
 
-		id := pkg.ID{
-			Type:     pkg.Gradle,
+		id := ID{
 			Name:     parent.Name,
 			Revision: parent.ResolvedVersion,
 		}
-		var imports []pkg.Import
+		var imports []Import
 		for _, child := range children {
-			imports = append(imports, pkg.Import{
+			imports = append(imports, Import{
 				Target: child.ResolvedVersion,
-				Resolved: pkg.ID{
-					Type:     pkg.Gradle,
+				Resolved: ID{
 					Name:     child.Name,
 					Revision: child.ResolvedVersion,
 				},
 			})
 		}
-		d[id] = pkg.Package{
+		d[id] = Package{
 			ID:      id,
 			Imports: imports,
 		}
 	}
 
-	return graph.Deps{
+	return graph{
 		Direct:     i,
 		Transitive: d,
 	}
 }
 
-func contains(array []pkg.Import, check pkg.Import) bool {
+func contains(array []Import, check Import) bool {
 	for _, val := range array {
 		if val == check {
 			return true
