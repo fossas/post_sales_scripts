@@ -6,6 +6,7 @@ import (
 
 	"ford-gradle/gradle"
 
+	"github.com/apex/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -19,7 +20,11 @@ import (
 var acceptedConfigs = []string{"runtime", "default", "compile"}
 
 func main() {
-	deps, _ := gradle.Dependencies("app", "./gradlew")
+	deps, err := gradle.Dependencies("app", "./gradlew")
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Printf("%d total dependencies discovered. Duplicates may exist\n", len(deps))
 	formatted, err := gradle.FormatFossaDeps(deps)
 
@@ -31,7 +36,7 @@ func main() {
 	fileName := "fossa-deps.yml"
 	err = ioutil.WriteFile(fileName, yamlData, 0644)
 	if err != nil {
-		panic("Unable to write data into the file")
+		log.Fatalf("unable to write data into the file.\nerror message %s\ndata attempted to be written %s", err, yamlData)
 	}
 }
 

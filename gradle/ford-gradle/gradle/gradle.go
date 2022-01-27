@@ -136,14 +136,16 @@ func Cmd(command string, taskArgs ...string) (string, error) {
 	stdout = string(stdoutBuf)
 	stderr = stderrBuffer.String()
 
-	if err != nil && stderr != "" {
-		return stdout, fmt.Errorf("Fossa could not run %s %s within the current directory.\nstdout: %s\nstderr: %s", command, strings.Join(taskArgs, " "), stdout, stderr)
-	}
 	log.WithFields(log.Fields{
 		"stdout": stdout,
 		"stderr": stderr,
 	}).Info("done running")
-	return stdout, err
+
+	if err != nil {
+		return "", fmt.Errorf("\nfossa could not run %s %s within the current directory", command, strings.Join(taskArgs, " "))
+	}
+
+	return stdout, nil
 }
 
 func ParseDependencies(stdout string) ([]Dependency, map[Dependency][]Dependency, error) {
