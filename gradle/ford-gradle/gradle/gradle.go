@@ -147,9 +147,6 @@ func Cmd(command string, taskArgs ...string) (string, error) {
 		"stdout": stdout,
 		"stderr": stderr,
 	}).Info("done running")
-
-	fmt.Println(stderr)
-	fmt.Println(stdout)
 	return stdout, err
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"ford-gradle/gradle"
@@ -18,7 +19,8 @@ import (
 var acceptedConfigs = []string{"runtime", "default", "compile"}
 
 func main() {
-	deps, _ := gradle.Dependencies("grpc-all", "./gradlew")
+	deps, _ := gradle.Dependencies("app", "./gradlew")
+	fmt.Printf("%d total dependencies discovered. Duplicates may exist\n", len(deps))
 	formatted, err := gradle.FormatFossaDeps(deps)
 
 	yamlData, err := yaml.Marshal(&formatted)
