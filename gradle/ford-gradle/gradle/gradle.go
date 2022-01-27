@@ -55,7 +55,6 @@ type graph struct {
 func Dependencies(project string, command string) ([]ID, error) {
 	arguments := []string{
 		project + ":dependencies",
-		"--quiet",
 		"--offline",
 	}
 
