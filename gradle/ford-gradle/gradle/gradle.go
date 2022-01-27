@@ -53,10 +53,7 @@ type graph struct {
 
 // Dependencies returns the dependencies of a gradle project
 func Dependencies(project string, command string) ([]ID, error) {
-	arguments := []string{
-		project + ":dependencies",
-		"--quiet",
-	}
+	arguments := []string{project + ":dependencies"}
 
 	stdout, err := Cmd(command, arguments...)
 	if err != nil {
