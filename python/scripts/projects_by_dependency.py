@@ -6,6 +6,8 @@
 
 # `get_packages_using_locator(locator="npm+coa$2.0.2")`
 
+# TODO: refactor to use new tooling
+
 import requests
 from os import environ
 
@@ -37,6 +39,9 @@ def get_packages_using_locator(locator="npm+coa$2.0.2"):
 
 	return response.text
 
+def main():
+	# TODO: implement
+	...
 
 if __name__ == "__main__":
 	print(get_packages_using_locator())

@@ -1,7 +1,6 @@
 # This script takes the output from `fossa analyze -o` and
 # 	uploads it to the FOSSA web app
 
-
 # $ fossa analyze -o > fossa_analyze_output.json
 # $ python3 upload_custom_build.py $FOSSA_API_KEY
 import requests
@@ -10,7 +9,6 @@ import sys
 
 fetcher = 'custom' 												# DO NOT CHANGE
 project_title = 'discordbot' 									# The title the project will be uploaded as in FOSSA
-api_key = sys.argv[1] 											# Sets API Key to the argument following the filepath
 org_id = 27932													# Your FOSSA organization ID (hit any FOSSA API endpoint to get this (organizationId))
 loc_name = 'github.com/codesupport/discord-bot'					# You can get this from the FOSSA web app :) Projects > [project name] > Settings
 rev_id = '3148981cc90b359472fc8da7481bd7cd8f0878bb'				# The hash of the most recent commit on git
@@ -23,10 +21,16 @@ if __name__ == "__main__":
 		payload = json.load(json_file)["sourceUnits"]
 
 		headers = {
-		'Authorization': f'Bearer {api_key}',
-		'Content-Type': 'application/json'
+			'Authorization': f'Bearer api_key',
+			'Content-Type': 'application/json'
 		}
 
 		response = requests.request("POST", url, headers=headers, json=payload)
 
 		print(response.text)
+
+# TODO: Refactor for new tooling and add support for custom filepath
+
+
+def main():
+	...

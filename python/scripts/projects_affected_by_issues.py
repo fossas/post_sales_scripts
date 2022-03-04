@@ -4,7 +4,7 @@
 # Because this pulls from /issues, this will list a given dependency for every vulnerability in that dependency
 # For example, if npm+my_package$1.0.0 has 4 vulnerabilities, then my_package will be listed as an entry 4 times
 # TODO: de-dupe entries
-
+# TODO: re-factor to use tooling
 # usage: python3 projects_affected_by_issues.py <fossa auth token>
 
 import sys
