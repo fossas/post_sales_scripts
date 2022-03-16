@@ -8,9 +8,9 @@ import json
 import sys
 
 fetcher = 'custom' 												# DO NOT CHANGE
-project_title = 'discordbot' 									# The title the project will be uploaded as in FOSSA
-org_id = 27932													# Your FOSSA organization ID (hit any FOSSA API endpoint to get this (organizationId))
-loc_name = 'github.com/codesupport/discord-bot'					# You can get this from the FOSSA web app :) Projects > [project name] > Settings
+project_title = '<title>' 									# The title the project will be uploaded as in FOSSA
+org_id = <org-id>													# Your FOSSA organization ID (hit any FOSSA API endpoint to get this (organizationId))
+loc_name = '<locator>'					# You can get this from the FOSSA web app :) Projects > [project name] > Settings
 rev_id = '3148981cc90b359472fc8da7481bd7cd8f0878bb'				# The hash of the most recent commit on git (or whatever ID you'd like to call the revision by)
 file_name = 'fossa_analyze_output.json'							# The name of the file containing the output of `fossa analyze -o`
 
