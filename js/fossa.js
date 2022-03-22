@@ -20,17 +20,22 @@ const fossa = (options) => {
     baseURL: new URL('api', options.endpoint).href,
     paramsSerializer: params => qs.stringify(params, { arrayFormat: 'brackets' }),
     headers,
-  })
+  });
 
-  // axios.interceptors.request.use(request => {
-  //   console.log('Starting Request', JSON.stringify(request, null, 2))
-  //   return request
-  // });
+  if (process.env.DEBUG) {
+    axios.interceptors.request.use(request => {
+      if (request.headers.Authorization) request.headers.Authorization = "(redacted)";
+      if (request.headers.Cookie) request.headers.Cookie = "(redacted)";
+      console.error('Starting Request', JSON.stringify(request, null, 2));
+      return request;
+    });
+  }
 
   return {
     options,
+    axios,
     async getProject(locator, params) {
-      return axios.get(`/projects/${encodeURIComponent(locator)}`).then(res => res.data);
+      return axios.get(`/projects/${encodeURIComponent(locator)}`, params).then(res => res.data);
     },
     async getProjects(params) {
       return axios.get('/projects', params).then(res => res.data);
