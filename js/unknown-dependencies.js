@@ -2,6 +2,7 @@
 
 // Fetches all unknown dependencies from all FOSSA projects
 
+const Promise = require('bluebird');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
@@ -28,9 +29,9 @@ async function main() {
   const projects = await fossa.getProjects();
   console.error('Fetching dependencies for each project...');
   const projectRevisions = await Promise.all(
-    projects.map(({last_analyzed_revision}) => {
+    Promise.map(projects, ({last_analyzed_revision}) => {
       return fossa.getDependenciesRaw(last_analyzed_revision, { validateStatus: ignore404 }).then(({data, status}) => status === 200 ? [projectURL(last_analyzed_revision), data] : []);
-    })
+    }, { concurrency: 10 })
   );
   const isUnknownLocator = ({loc}) => loc.fetcher === null;
   const getLocator = ({DependencyLock}) => DependencyLock.unresolved_locators;

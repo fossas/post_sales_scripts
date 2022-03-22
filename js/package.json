@@ -18,6 +18,7 @@
   "homepage": "https://github.com/fossas/post_sales_scripts#readme",
   "dependencies": {
     "axios": "^0.24.0",
+    "bluebird": "^3.7.2",
     "compare-versions": "^4.1.2",
     "dotenv-safe": "^8.2.0",
     "lodash.groupby": "^4.6.0",
