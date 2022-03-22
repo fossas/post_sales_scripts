@@ -27,10 +27,12 @@ const ignore404 = (status) => status === 404 || (status >= 200 && status < 300)
 async function main() {
   console.error('Fetching all projects...') ;
   const projects = await fossa.getProjects();
-  console.error('Fetching dependencies for each project...');
+  console.error(`Fetching dependencies for ${projects.length} project(s)...`);
   const projectRevisions = await Promise.all(
     Promise.map(projects, ({last_analyzed_revision}) => {
-      return fossa.getDependenciesRaw(last_analyzed_revision, { validateStatus: ignore404 }).then(({data, status}) => status === 200 ? [projectURL(last_analyzed_revision), data] : []);
+      return fossa
+        .getDependenciesRaw(last_analyzed_revision, { validateStatus: ignore404 })
+        .then(({data, status}) => status === 200 ? [projectURL(last_analyzed_revision), data] : []);
     }, { concurrency: 10 })
   );
   const isUnknownLocator = ({loc}) => loc.fetcher === null;
