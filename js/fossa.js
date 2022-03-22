@@ -38,14 +38,18 @@ const fossa = (options) => {
     async getIssues(params) {
       return axios.get('/issues', params).then(res => res.data);
     },
-    async getDependencies(revision) {
+    async getDependencies(revision, params) {
       // TODO page through results, limit on FOSSA UI is 750 dependencies per page
-      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, { include_ignored: true }).then(res => res.data);
+      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, Object.assign(params, { include_ignored: true })).then(res => res.data);
+    },
+    async getDependenciesRaw(revision, params) {
+      // TODO page through results, limit on FOSSA UI is 750 dependencies per page
+      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, Object.assign(params, { include_ignored: true }));
     },
     async getTeamByName(name, params) {
       return axios.get('/teams', params).then(res => res.data.find(t => t.name === name));
     },
-    async getProjectsForTeam(teamName) {  
+    async getProjectsForTeam(teamName) {
       // Need to get organization ID somehow, /teams returns it
       const [orgId, teamId] = await axios.get('/teams')
         .then(teams => {
