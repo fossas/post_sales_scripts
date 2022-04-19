@@ -18,12 +18,13 @@
   "homepage": "https://github.com/fossas/post_sales_scripts#readme",
   "dependencies": {
     "axios": "^0.24.0",
+    "axios-retry": "^3.2.4",
+    "bluebird": "^3.7.2",
     "dotenv-safe": "^8.2.0",
     "exceljs": "^4.3.0",
     "lodash.groupby": "^4.6.0",
     "lodash.keyby": "^4.6.0",
     "qs": "^6.10.1",
     "yargs": "^17.2.1"
-  },
-  "devDependencies": {}
+  }
 }

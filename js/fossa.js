@@ -1,6 +1,9 @@
 const _axios = require('axios').default;
 const keyBy = require('lodash.keyby');
+const merge = require('lodash.merge');
 const qs = require('qs');
+
+const isUnknownLocator = ({loc}) => loc.fetcher === null;
 
 const fossa = (options) => {
   const headers = {};
@@ -24,10 +27,16 @@ const fossa = (options) => {
 
   if (process.env.DEBUG) {
     axios.interceptors.request.use(request => {
-      if (request.headers.Authorization) request.headers.Authorization = "(redacted)";
-      if (request.headers.Cookie) request.headers.Cookie = "(redacted)";
-      console.error('Starting Request', JSON.stringify(request, null, 2));
+      const redacter = (k, v) => {
+        if (k === 'Authorization' || k === 'Cookie') return '(redacted)';
+        return v;
+      };
+      console.error('Starting Request', JSON.stringify(request, redacter, 2));
       return request;
+    });
+    axios.interceptors.response.use(response => {
+      console.error('Response:', response)
+      return response;
     });
   }
 
@@ -37,20 +46,68 @@ const fossa = (options) => {
     async getProject(locator, params) {
       return axios.get(`/projects/${encodeURIComponent(locator)}`, params).then(res => res.data);
     },
-    async getProjects(params) {
-      return axios.get('/projects', params).then(res => res.data);
+    async getProjects(params = {}, offset = 0, projects = []) {
+      const rangeRegex = /items (\d+)-(?<last>\d+)\/(?<total>\d+)/;
+      return axios.get('/projects', merge({ params: { offset }}, params)).then(res => {
+        if (res.data.length < 1) return projects;
+        projects.push(...res.data);
+        const parsedRange = res.headers['content-range'].match(rangeRegex).groups;
+        const lastInPage = parseInt(parsedRange.last);
+        const total = parseInt(parsedRange.total);
+        if (lastInPage + 1 === total) return projects;
+        return this.getProjects(params, lastInPage + 1, projects);
+      });
     },
     async getIssues(params) {
       return axios.get('/issues', params).then(res => res.data);
     },
     async getDependencies(revision, params) {
-      // TODO page through results, limit on FOSSA UI is 750 dependencies per page
-      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, Object.assign(params, { include_ignored: true })).then(res => res.data);
+      return this.getDependenciesRaw(revision, params);
     },
-    async getDependenciesRaw(revision, params) {
-      // TODO page through results, limit on FOSSA UI is 750 dependencies per page
-      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, Object.assign(params, { include_ignored: true }));
+    async getDependenciesRaw(revision, params, dependency_count = null, offset = 0, deps = []) {
+      // if (revision !== 'git+github.com/fossas/super$0756494e7c8299c05c7c47e3e3c45abc85559a97') return [];
+      // project revisions that haven't been scanned will return 404, which we can
+      // safely ignore
+      const ignore404 = (status) => status === 404 || (status >= 200 && status < 300)
+
+      // The endpoint to fetch dependencies doesn't return the total number of
+      // dependencies. This needs to be fetched in a separate call to the
+      // revision itself
+      if (dependency_count === null) {
+        dependency_count = (await axios.get(`/revisions/${encodeURIComponent(revision)}`, { validateStatus: ignore404 })).data.dependency_count;
+      }
+
+      // dependency_count does not include unknown dependencies, so we need to
+      // fetch at least the first page of dependencies even if it is 0
+      console.error(`Fetching dependencies from ${revision} (${deps.length}/${dependency_count})...`)
+
+      const actualParams = merge({ validateStatus: ignore404, params: { offset, limit: 750 }}, params);
+      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, actualParams).then(res => {
+        if (res.status === 404) return [];
+        if (res.data.length < 1) return deps;
+        deps.push(...res.data.filter(dep => !isUnknownLocator(dep)));
+        if (deps.length >= dependency_count) return deps;
+        return this.getDependenciesRaw(revision, params, dependency_count, offset + 750, deps);
+      });
     },
+    async getUnknownDependencies(revision, params, offset = 0) {
+      console.error('getting unknown deps for ', revision);
+      // project revisions that haven't been scanned will return 404, which we can
+      // safely ignore
+      const ignore404 = (status) => status === 404 || (status >= 200 && status < 300)
+
+
+      const actualParams = merge({ validateStatus: ignore404, params: { offset, include_ignored: true, limit: 750 }}, params);
+      return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, actualParams).then(res => {
+        if (res.status === 404 || res.data.length < 1) return [];
+        const unknownDep = res.data.find(isUnknownLocator);
+        if (unknownDep) {
+          return unknownDep.unresolved_locators;
+        }
+        return this.getUnknownDependencies(revision, params, offset + res.data.length);
+      });
+    },
+
     async getTeamByName(name, params) {
       return axios.get('/teams', params).then(res => res.data.find(t => t.name === name));
     },

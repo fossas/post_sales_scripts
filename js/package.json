@@ -23,6 +23,7 @@
     "dotenv-safe": "^8.2.0",
     "lodash.groupby": "^4.6.0",
     "lodash.keyby": "^4.6.0",
+    "lodash.merge": "^4.6.2",
     "qs": "^6.10.1",
     "yargs": "^17.2.1"
   }

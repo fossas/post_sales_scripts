@@ -18,7 +18,11 @@ npm install
 
 Outputs a report in XLSX format. Will overwrite file without prompting if it already exists.
 
-```
+```bash
+# report for all projects
+FOSSA_API_TOKEN=your_api_token node index.js output_filename.xlsx
+
+# report for a specific team
 FOSSA_API_TOKEN=your_api_token node index.js --team=your_team_name_here output_filename.xlsx
 ```
 

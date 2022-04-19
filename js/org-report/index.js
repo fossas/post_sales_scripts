@@ -1,5 +1,6 @@
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
+const axiosRetry = require('axios-retry');
 
 const argv = yargs(hideBin(process.argv))
   .command('$0 <file>')
@@ -7,13 +8,29 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     description: 'FOSSA team name to fetch issues from'
   })
-  .demandOption(['team', 'file'])
+  .option('endpoint', {
+    type: 'string',
+    description: 'FOSSA base URL, used for private FOSSA deployments',
+    default: 'https://app.fossa.com',
+  })
+  .demandOption(['file'])
   .parse();
 
 require('dotenv-safe').config();
-const fossa = require('../fossa')({ token: process.env.FOSSA_API_TOKEN, cookie: process.env.FOSSA_COOKIE });
+const fossa = require('../fossa')({
+  token: process.env.FOSSA_API_TOKEN,
+  cookie: process.env.FOSSA_COOKIE,
+  endpoint: argv.endpoint,
+});
+
+axiosRetry(fossa.axios, {
+  retries: 10,
+  retryDelay: axiosRetry.exponentialDelay,
+});
+
 const ExcelJS = require('exceljs');
 const groupBy = require('lodash.groupby');
+const Promise = require('bluebird');
 
 const pluralize = count => {
   if (count > 1) return `${count} issues found`;
@@ -21,7 +38,10 @@ const pluralize = count => {
   return 'No issues found';
 }
 
-fossa.getProjectsForTeam(argv.team)
+const reportedProjects = argv.team ? fossa.getProjectsForTeam(argv.team) : fossa.getProjects();
+
+
+reportedProjects
   .then(async projects => {
     projects.sort((a, b) => a.title.localeCompare(b.title));
     const workbook = new ExcelJS.Workbook();
@@ -44,7 +64,9 @@ fossa.getProjectsForTeam(argv.team)
     ];
 
     const parseLocator = locator => {
-      const {groups: {fetcher, title, revision}} = /(?<fetcher>.*)\+(?<title>.*)\$(?<revision>.*)/.exec(locator)
+      const parsed = /(?<fetcher>.*)\+(?<title>.*)\$(?<revision>.*)/.exec(locator);
+      if (!parsed) return null;
+      const {groups: {fetcher, title, revision}} = parsed;
       return {
         project: {
           title,
@@ -56,12 +78,13 @@ fossa.getProjectsForTeam(argv.team)
         },
       };
     };
-    const bom = Promise.all(projects.map(p => fossa.getDependencies(p.last_analyzed_revision).then(deps => [p, deps]))).then(res => {
+    const wasAnalyzed = p => Boolean(p.last_analyzed_revision);
+    const bom = Promise.all(Promise.map(projects.filter(wasAnalyzed), p => fossa.getDependencies(p.last_analyzed_revision).then(deps => [p, deps]), { concurrency: 10 }).then(res => {
       return res.flatMap(([project, dependencies]) => {
         // Unknown dependencies are returned in a special project named "NULL".
         // Each unknown dependency is just a locator which needs to be manually parsed.
         const {'true': knownDependencies, 'false': unknown} = groupBy(dependencies, dep => dep.locator !== 'NULL');
-        const unknownDependencies = unknown?.flatMap(uDep => uDep.unresolved_locators.map(parseLocator))
+        const unknownDependencies = unknown?.flatMap(uDep => uDep.unresolved_locators.filter(l => l !== 'NULL').map(parseLocator).filter(Boolean))
         return [...knownDependencies||[], ...unknownDependencies||[]].map(dep => {
           return {
             project: project.title,
@@ -72,10 +95,10 @@ fossa.getProjectsForTeam(argv.team)
           };
         });
       });
-    });
-    bom.then(rows => bomSheet.addRows(rows));
+    }));
+    bom.then(rows => { return bomSheet.addRows(rows) });
 
-    const issuesPerProject = Promise.all(projects.flatMap(p => fossa.getIssues({
+    const issuesPerProject = Promise.all(Promise.map(projects, p => fossa.getIssues({
       params: {
         'scanScope[type]': 'project',
         'scanScope[projectId]': p.locator,
@@ -83,7 +106,7 @@ fossa.getProjectsForTeam(argv.team)
         // TODO any better way to get the latest revision?
         'scanScope[revisionId]': p.last_analyzed_revision?.split('$')[1],
       }
-    }).then(issues => issues.flatMap(i => Object.assign(i, {project: p})))));
+    }, { concurrency: 10 }).then(issues => issues.flatMap(i => Object.assign(i, {project: p})))));
 
     return Promise.all([issuesPerProject, fossa.getPoliciesById(), bom]).then(([projectIssues, policies, bom]) => {
       // TODO show resolved issues separately
