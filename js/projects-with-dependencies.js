@@ -32,18 +32,11 @@ Promise.all(dependencies).then(_ => {
 
   const revisions = argv.locators.map(locator => {
     console.error(`Fetching revisions for ${locator}...`);
-    return fossa.getRevisions(locator, {
-      params: {
-        count: 100,
-        offset: 0,
-        refs: ['master'],
-        refs_type: 'branch',
-      }
-    }).then(result => {
+    return fossa.getMasterRevisions(locator).then(revisions => {
       console.error(`Fetched revisions for ${locator}`);
-      return result;
+      return [locator, revisions];
     }).catch(error => {
-      if (error.response?.status === 500 && error.response?.dat?.message?.includes('No starting point elected for revision traversal')) {
+      if (error.response?.status === 500 && error.response?.data?.message?.includes('No starting point elected for revision traversal')) {
         console.error(`No references found for locator ${locator}, will be ignored`);
         return Promise.resolve();
       }
@@ -57,7 +50,7 @@ Promise.all(dependencies).then(_ => {
       // filter out projects with no revisions
       return Promise.all(res.filter(Boolean).map(([dependency, revisions]) => {
         if (!result[dependency]) result[dependency] = new Set();
-        return Promise.all(revisions.branch.master.map(rev => {
+        return Promise.all(revisions.map(rev => {
           console.error(`Fetching parent projects for ${rev.locator}...`);
           return fossa.getParentProjects(rev.locator).then(parents => {
             console.error(`Fetched parent projects for ${rev.locator}`);

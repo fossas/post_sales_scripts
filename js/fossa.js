@@ -145,8 +145,20 @@ const fossa = (options) => {
     async listMinimal(params) {
       return axios.get('/issues/list-minimal', params).then(res => res.data);
     },
-    async getRevisions(locator, params) {
-      return axios.get(`/projects/${encodeURIComponent(locator)}/revisions`, params).then(res => [locator, res.data]);
+    async getMasterRevisions(locator) {
+      let lastRevision = null;
+      let result = [];
+      const params = {
+        refs: ['master'],
+        refs_type: 'branch',
+      };
+      do {
+        params.cursor = lastRevision;
+        let revisions = await axios.get(`/projects/${encodeURIComponent(locator)}/revisions`, { params }).then(res => res.data.branch.master);
+        result = result.concat(revisions);
+        lastRevision = revisions[revisions.length - 1]?.loc?.revision;
+      } while (lastRevision !== undefined);
+      return result;
     },
     async getParentProjects(locator) {
       return axios.get(`/revisions/${encodeURIComponent(locator)}/parent_projects`).then(res => res.data);
