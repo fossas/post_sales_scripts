@@ -1,0 +1,19 @@
+trigger:
+- main
+ 
+pool:
+  vmImage: ubuntu-latest
+ 
+steps:
+- script: echo Starting Fossa SCA Test!
+  displayName: 'Display process start'
+ 
+- script: |
+     curl https://raw.githubusercontent.com/fossas/spectrometer/master/install.sh | bash
+     
+     cd $(Build.Repository.LocalPath)
+
+     fossa analyze --fossa-api-key $(FOSSA_API_KEY) 
+     fossa test --timeout 600 --fossa-api-key $(FOSSA_API_KEY)
+     
+  displayName: 'FOSSA Scan'
