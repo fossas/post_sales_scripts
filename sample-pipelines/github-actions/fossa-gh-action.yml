@@ -20,18 +20,6 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - run: |
-         mvn -v
-         
-      - name: Setup Maven Action
-        uses: s4u/setup-maven-action@main
-        with:
-          java-version: 11
-          maven-version: 3.6.3
-
-      - run: |
-         mvn -v
       - uses: actions/checkout@v3
 
       - uses: fossas/fossa-action@main
@@ -42,4 +30,4 @@ jobs:
       - uses: fossas/fossa-action@main
         with:
           api-key: ${{ env.FOSSA_API_KEY }}
-          run-test: true
+          run-tests: true
