@@ -1,0 +1,19 @@
+version: 0.2
+
+env:
+  secrets-manager:
+    FOSSA_API_KEY: fossa-token:fossa-token
+
+phases:
+  install:
+    commands:
+      - "curl -H \"Cache-Control: no-cache\" https://raw.githubusercontent.com/fossas/spectrometer/master/install.sh | bash"
+
+  post_build:
+    commands:
+      # Start the SCA scan in the source root
+      # cd project directory
+
+      - FOSSA_API_KEY=$FOSSA_API_KEY
+      - fossa analyze
+      - fossa test
