@@ -1,0 +1,45 @@
+name: FOSSA: Analysis + Test
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    env:
+      FOSSA_API_KEY: ${{secrets.FOSSA_API_KEY}}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - run: |
+         mvn -v
+         
+      - name: Setup Maven Action
+        uses: s4u/setup-maven-action@main
+        with:
+          java-version: 11
+          maven-version: 3.6.3
+
+      - run: |
+         mvn -v
+      - uses: actions/checkout@v3
+
+      - uses: fossas/fossa-action@main
+        with:
+          api-key: ${{ env.FOSSA_API_KEY }}
+          branch: ${{ github.ref_name }}
+
+      - uses: fossas/fossa-action@main
+        with:
+          api-key: ${{ env.FOSSA_API_KEY }}
+          run-test: true
