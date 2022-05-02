@@ -91,7 +91,7 @@ const fossa = (options) => {
       });
     },
     async getUnknownDependencies(revision, params, offset = 0) {
-      console.error('getting unknown deps for ', revision);
+      console.error(`getting unknown deps for ${revision}...`);
       // project revisions that haven't been scanned will return 404, which we can
       // safely ignore
       const ignore404 = (status) => status === 404 || (status >= 200 && status < 300)
