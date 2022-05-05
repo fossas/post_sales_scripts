@@ -1,0 +1,45 @@
+/* 
+    This sample Jenkinsfile shows how to configure a Jenkins pipeline to analyze a repository using the FOSSA CLI
+    This example assumes a Linux environment
+*/
+
+pipeline {
+
+    agent { label 'run-fossa' }
+
+    environment {
+        ...
+    }
+
+    options {
+        ...
+    }
+
+    stages {
+        stage('Clone Repository') {
+            git url: 'https://github.com/some-org/example-repo-1.git'
+        }    
+
+        stage('Download FOSSA CLI') {
+            steps {
+                sh "curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh"
+                sh "fossa --version"
+            }
+        }
+
+        stage('Run FOSSA') {
+            steps {
+                sh "fossa analyze" // use flags if necessary (e.g. specifying team)
+            }
+        }
+
+        // Add this stage to check if any deps are flagged; it will fail on exit code 1 if there are any flagged deps
+        stage('Run FOSSA test') {
+            steps {
+                sh "fossa test"
+            }
+        }
+
+    }
+
+}
