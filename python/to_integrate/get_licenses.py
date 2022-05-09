@@ -4,6 +4,11 @@ import json
 # To use this script, just include your filters (or use an empty array
 # in order to not filter) and your API token, then run it
 
+# LIMITATIONS
+# Currently, this converts the license title to lowercase and
+# does a substring match. It's not exhaustive, but gives a great
+# starting point.
+
 filters = ['gpl', 'bsd', 'mit']
 api_token = ""
 
