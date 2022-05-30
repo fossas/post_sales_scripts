@@ -37,7 +37,8 @@ async function main() {
       return fossa
         .getUnknownDependencies(last_analyzed_revision)
         .then(unknownDeps => ({ project: projectURL(last_analyzed_revision), unknownDeps }))
-    }, { concurrency: 3 });
+    }, { concurrency: 3 })
+    .filter(({unknownDeps}) => unknownDeps.length > 0);
   projectRevisions.forEach(r => console.log(JSON.stringify(r)))
 }
 
