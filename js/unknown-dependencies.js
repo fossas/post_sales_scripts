@@ -7,6 +7,9 @@
 //
 // Ignore different versions of the same unknown dependency:
 // jq --raw-output .unknownDeps[] | awk --field-separator $ '{print $1}' | sort | uniq
+//
+// Show only project names and not any dependencies
+// jq --raw-output .project
 
 const Promise = require('bluebird');
 const yargs = require('yargs/yargs');
