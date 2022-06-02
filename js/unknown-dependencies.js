@@ -29,7 +29,7 @@ const fossa = require('./fossa')({ token: process.env.FOSSA_API_TOKEN, endpoint:
 const parseProjectLocator = locator => /(?<title>custom\+([0-9]+)\/(.*))\$(?<revision>.*)/.exec(locator).groups;
 const projectURL = locator => {
   const { title, revision } = parseProjectLocator(locator);
-  return `${fossa.options.endpoint}/projects/${encodeURIComponent(title)}/revision/${encodeURIComponent(revision)}`;
+  return `${fossa.options.endpoint}/projects/${encodeURIComponent(title)}/refs/revision/${encodeURIComponent(revision)}`;
 };
 
 async function main() {
