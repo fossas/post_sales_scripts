@@ -21,20 +21,32 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     description: 'FOSSA API service base URL',
   })
+  .option('project', {
+    type: 'array',
+    description: 'Project locator to fetch unknown dependencies from',
+  })
   .parse();
 
 require('dotenv-safe').config();
 
 const fossa = require('./fossa')({ token: process.env.FOSSA_API_TOKEN, endpoint: argv.endpoint });
-const parseProjectLocator = locator => /(?<title>custom\+([0-9]+)\/(.*))\$(?<revision>.*)/.exec(locator).groups;
+const parseProjectLocator = locator => /(?<title>custom\+([0-9]+)\/(.*))\$(?<revision>.*)/.exec(locator)?.groups || {title: null, revision: null};
 const projectURL = locator => {
   const { title, revision } = parseProjectLocator(locator);
   return `${fossa.options.endpoint}/projects/${encodeURIComponent(title)}/refs/revision/${encodeURIComponent(revision)}`;
 };
 
 async function main() {
-  console.error('Fetching all projects...') ;
-  const projects = await fossa.getProjects();
+  let projects = [];
+  if (!argv.project.length) {
+    console.error('Fetching all projects...') ;
+    projects = await fossa.getProjects();
+  } else {
+    projects = await Promise.all(argv.project.map(locator => {
+      console.error(`Fetching project ${locator}...`);
+      return fossa.getProject(locator);
+    }));
+  }
   console.error(`Fetching dependencies for ${projects.length} project(s)...`);
   const projectRevisions = await Promise.map(projects, ({last_analyzed_revision}) => {
       return fossa
