@@ -97,7 +97,7 @@ const fossa = (options) => {
       const ignore404 = (status) => status === 404 || (status >= 200 && status < 300)
 
 
-      const actualParams = merge({ validateStatus: ignore404, params: { offset, include_ignored: true, limit: 750 }}, params);
+      const actualParams = merge({ validateStatus: ignore404, params: { offset, limit: 750 }}, params);
       return axios.get(`/revisions/${encodeURIComponent(revision)}/dependencies`, actualParams).then(res => {
         if (res.status === 404 || res.data.length < 1) return [];
         const unknownDep = res.data.find(isUnknownLocator);
