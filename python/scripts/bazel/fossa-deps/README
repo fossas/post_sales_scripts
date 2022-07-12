@@ -16,3 +16,23 @@ See our `fossa-deps` [documentation](https://github.com/fossas/fossa-cli/blob/ma
 It outputs a compatible `fossa-deps.yml`.
 
 ### How do you analyse only the `fossa-deps.yml` file?
+
+There are two ways to do this:
+
+#### Run analysis with the `--exclude-path` flag
+
+Simply run `fossa analyze --exclude-path .`, provided that `FOSSA_API_KEY` is set (either using the flag or is set as an env variable) and the `fossa-deps` file exists.
+
+#### Exclude all paths via `.fossa.yml`
+
+Exclude the root of the directory via `paths.exclude`:
+
+```yaml
+version: 3
+
+paths:
+  exclude:
+    - ./
+```
+
+Please see our [documentation](https://github.com/fossas/fossa-cli/blob/master/docs/references/files/fossa-yml.md) for more details.
