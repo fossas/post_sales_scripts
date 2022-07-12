@@ -37,6 +37,6 @@ if __name__ == '__main__':
         importPath = findImportPathValue(go_repo)
         dependencyVersion = findDependencyVersionValue(go_repo)
 
-        referencedDepsDict["referenced-dependencies"].append({"type":"gomod", "name":importPath, "version":dependencyVersion})
+        referencedDepsDict["referenced-dependencies"].append({"type":"go", "name":importPath, "version":dependencyVersion})
 
     saveFossaDepsJson(referencedDepsDict)
