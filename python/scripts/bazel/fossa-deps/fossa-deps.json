@@ -1,0 +1,39 @@
+{
+  "referenced-dependencies": [
+    {
+      "type": "go",
+      "name": "github.com/gogo/protobuf",
+      "version": "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+    },
+    {
+      "type": "go",
+      "name": "github.com/grpc/grpc-go",
+      "version": "v1.37.0"
+    },
+    {
+      "type": "go",
+      "name": "github.com/google/go-containerregistry",
+      "version": "628a2ff5f006eca399a316a66cc714106fcb3943"
+    },
+    {
+      "type": "go",
+      "name": "github.com/aws/aws-lambda-go",
+      "version": "v1.22.0"
+    },
+    {
+      "type": "go",
+      "name": "github.com/shirou/gopsutil",
+      "version": "3b417071a5835600ae0d654231cfb9ce226f2b6b"
+    },
+    {
+      "type": "go",
+      "name": "mvdan.cc/gofumpt",
+      "version": "v0.1.1"
+    },
+    {
+      "type": "go",
+      "name": "mvdan.cc/interfacer",
+      "version": "v0.0.0-20180901003855-c20040233aed"
+    }
+  ]
+}
