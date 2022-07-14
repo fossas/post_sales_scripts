@@ -13,9 +13,9 @@ and extracts the name of the dependency and its version. It finds the version by
 See our `fossa-deps` [documentation](https://github.com/fossas/fossa-cli/blob/master/docs/references/files/fossa-deps.md#referenced-dependencies) for more details.
 
 ### What does it output?
-It outputs a compatible `fossa-deps.yml`.
+It outputs a compatible `fossa-deps.json`.
 
-### How do you analyse only the `fossa-deps.yml` file?
+### How do you analyse only the `fossa-deps.json` or an equivalent `fossa-deps.yml` file?
 
 There are two ways to do this:
 
