@@ -170,7 +170,7 @@ func ParseDependencies(stdout string) ([]Dependency, map[Dependency][]Dependency
 
 		// Parse dependency.
 		dep := matches[2]
-		withoutAnnotations := strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(dep, " (*)"), " (n)"), " FAILED")
+		withoutAnnotations := strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(strings.TrimSuffix(dep, " (*)"), " (n)"), " (c)"), "FAILED")
 		var parsed Dependency
 		if strings.HasPrefix(withoutAnnotations, "project ") {
 			// TODO: the desired method for handling this might be to recurse into the subproject.
