@@ -45,7 +45,7 @@ if [ -z "$targetOrg" ]; then
     echo "Organization \"$title\" not found." 1>&2
     exit 1
 else
-    targetOrgId=$(jq -r ".[0] | .id" <<< "$orgs")
+    targetOrgId=$(jq -r ".id" <<< "$targetOrg")
     currentOrgId=$(jq -r .organization.id <<< $user)
     if [ "$currentOrgId" = "$targetOrgId" ]; then
         currentOrgTitle=$(jq -r .organization.title <<< $user)
@@ -54,6 +54,7 @@ else
     fi
     curl --silent --fail --show-error --location --request PUT "$endpoint/api/users/$userId" \
         --header "Authorization: Bearer $FOSSA_API_KEY" \
+	--header "Content-Type: application/json" \
         --data "{\"organizationId\": $targetOrgId}" \
         --output /dev/null
     echo "Switched to organization \"$title\" ($targetOrgId)" 1>&2
