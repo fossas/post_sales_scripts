@@ -60,7 +60,7 @@ def replace_dependency_in_project(projectLocator, name, version, homepage, descr
         """
         try:
             fossa_api_token = os.environ['FOSSA_API_KEY']
-            url_endpoint = 'https://app.fossa.com/api/revisions/{projectLocator}/dependencies'.format(projectLocator=quote(projectLocator,safe=''))
+            url_endpoint = 'https://app.fossa.com/api/revisions/{revisionLocator}/dependencies'.format(revisionLocator=quote(revisionLocator,safe=''))
 
             headersAuth = {
                 'Authorization': 'Bearer ' + fossa_api_token,
