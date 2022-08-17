@@ -100,7 +100,7 @@ def project(project_locator_dict, api_key=None) -> Optional[dict]:
 
 def revisions(project_locator: dict, api_key: Optional[str] = None) -> dict:
 	"""
-	Get all revisions for a project.
+	Get a specific revision for a project.
 
 	:param project_locator: {fetcher, package}
 	:param api_key: Your FOSSA API key (optional)
@@ -110,6 +110,21 @@ def revisions(project_locator: dict, api_key: Optional[str] = None) -> dict:
 	locator_url = f'{project_locator["fetcher"]}%2F{project_locator["package"]}%24{project_locator["revision"]}'
 	response = request(f'revisions/{locator_url}', 'GET', data=None, api_key=api_key)
 	return response.json()
+
+
+def revision_resolve(project_locator: dict, api_key: Optional[str] = None) -> dict:
+	"""
+	Get a specific revision for a project.
+
+	:param project_locator: {fetcher, package}
+	:param api_key: Your FOSSA API key (optional)
+
+	:return: The revisions list
+	"""
+	locator_url = f'{project_locator["fetcher"]}%2F{project_locator["package"]}%24{project_locator["revision"]}'
+	response = request(f'revisions/{locator_url}/resolves', 'GET', data=None, api_key=api_key)
+	return response.json()
+
 
 
 def get_api_key() -> str:

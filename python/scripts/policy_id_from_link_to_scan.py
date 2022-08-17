@@ -45,3 +45,7 @@ def main(api_key) -> None:
 		for scan in scans:
 			print(f'The policy ID of scan {scan["id"]} ({scan["scanned_at"]} UTC) is:')
 			print(scan['licensingPolicyVersionId'])
+
+if __name__ == '__main__':
+  fossa_api_key = api.get_api_key()
+  main(fossa_api_key)
