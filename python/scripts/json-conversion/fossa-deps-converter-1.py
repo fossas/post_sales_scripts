@@ -15,12 +15,16 @@ if __name__ == '__main__':
          this_type_files = glob(type)
          rpm_and_tar += this_type_files
 
-    vendoredDepsDict = { "vendored-dependencies": [] }
+    vendoredDeps = { "vendored-dependencies": [] }
     name, path = '', ''
 
-    for path in rpm_and_tar:
-        filename = path.split('/')[-1].split('.')[0]
-        print(filename)
-        referencedDepsDict["vendored-dependencies"].append({"name": filename, "path":path})
+    if rpm_and_tar:
+        for path in rpm_and_tar:
+            filename = path.split('/')[-1].split('.')[0]
+            print(filename)
+            vendoredDeps["vendored-dependencies"].append({"name": filename, "path":path})
 
-    saveFossaDepsJson(referencedDepsDict)
+        print('Saving fossa-deps.json...')
+        saveFossaDepsJson(vendoredDeps)
+    else:
+        print('Nothing to convert...')
