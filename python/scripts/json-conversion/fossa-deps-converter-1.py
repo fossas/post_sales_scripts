@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     rpm_and_tar = []
     for type in types:
-         this_type_files = glob(type)
+         this_type_files = glob(type, recursive=True)
          rpm_and_tar += this_type_files
 
     vendoredDeps = { "vendored-dependencies": [] }
