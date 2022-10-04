@@ -1,5 +1,6 @@
 from glob import glob
 import json
+import os
 
 def saveFossaDepsJson(dictionary):
     file = open('fossa-deps.json', 'w')
@@ -20,8 +21,7 @@ if __name__ == '__main__':
 
     if rpm_and_tar:
         for path in rpm_and_tar:
-            filename = path.split('/')[-1].split('.')[0]
-            print(filename)
+            filename = os.path.splitext(os.path.basename(path))[0]
             vendoredDeps["vendored-dependencies"].append({"name": filename, "path":path})
 
         print('Saving fossa-deps.json...')
