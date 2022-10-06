@@ -30,7 +30,6 @@ def findRpmTarVendoredDependencies():
             vendoredDeps["vendored-dependencies"].append({"name": filename, "path":path})
 
         print('Converted vendored dependencies...')
-        print(vendoredDeps)
         return vendoredDeps
     else:
         print('Vendored Dependencies: Nothing to convert...')
@@ -42,6 +41,7 @@ def findReferenceDependencies():
     referencedDeps = { "referenced-dependencies": [] }
     name, version, type = '', '', ''
 
+    # Figure out the mapping for your org. Here's an example.
     if artifactsFile:
         for dep in artifactsFile['rows']:
             for key, val in dep.items():
@@ -54,7 +54,6 @@ def findReferenceDependencies():
             referencedDeps["referenced-dependencies"].append({"type": type, "name":name, "version":version})
 
         print('Converted referenced dependencies...')
-        print(referencedDeps)
         return referencedDeps
     else:
         print('Referenced Dependencies: Nothing to convert...')
@@ -65,6 +64,6 @@ if __name__ == '__main__':
     vendoredDeps = findRpmTarVendoredDependencies()
     referencedDeps = findReferenceDependencies()
 
-    convertedDeps = dict(list(vendoredDeps.items()) + list(referencedDeps.items()))
+    convertedDeps = {**vendoredDeps,**referencedDeps}
 
     saveFossaDepsJson(convertedDeps)
