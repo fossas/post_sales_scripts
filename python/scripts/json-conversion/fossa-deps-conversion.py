@@ -1,5 +1,6 @@
 from glob import glob
 import json
+import os
 
 def readArtifacts():
     file = open('artifacts.json', 'r')
@@ -13,21 +14,26 @@ def saveFossaDepsJson(dictionary):
     file.close()
 
 def findRpmTarVendoredDependencies():
-    types = ["**/*.rpm", "**/*.tar"]
 
     rpm_and_tar = []
-    for type in types:
-         this_type_files = glob(type, recursive=True)
-         rpm_and_tar += this_type_files
+
+    # walk the root of this current dir
+    for root, dirs, files in os.walk(os.curdir):
+    	for file in files:
+    		if(file.endswith(".rpm") or file.endswith(".tar")):
+    			rpm_and_tar.append(os.path.join(root,file))
 
     vendoredDeps = { "vendored-dependencies": [] }
     name, path = '', ''
 
     if rpm_and_tar:
         for path in rpm_and_tar:
-            filename = path.split('/')[-1].split('.')[0]
+            filename = path.rsplit('/')[-1].rsplit('.',1)[0]
             print(filename)
-            vendoredDeps["vendored-dependencies"].append({"name": filename, "path":path})
+
+            # take out dupes
+            if not any(dep.get('name', None) == filename for dep in vendoredDeps["vendored-dependencies"]):
+                vendoredDeps["vendored-dependencies"].append({"name": filename, "path":path})
 
         print('Converted vendored dependencies...')
         return vendoredDeps
