@@ -3,9 +3,15 @@ import json
 import os
 
 def readArtifacts():
-    file = open('artifacts.json', 'r')
-    data = json.load(file)
-    file.close()
+    data = {}
+
+    # may need to change this to the actual file that contains deps that need to be converted
+    artifactsFile = 'artifacts.json'
+
+    if os.path.exists(artifactsFile):
+        file = open(artifactsFile, 'r')
+        data = json.load(file)
+        file.close()
     return data
 
 def saveFossaDepsJson(dictionary):
@@ -29,7 +35,6 @@ def findRpmTarVendoredDependencies():
     if rpm_and_tar:
         for path in rpm_and_tar:
             filename = path.rsplit('/')[-1].rsplit('.',1)[0]
-            print(filename)
 
             # take out dupes
             if not any(dep.get('name', None) == filename for dep in vendoredDeps["vendored-dependencies"]):
