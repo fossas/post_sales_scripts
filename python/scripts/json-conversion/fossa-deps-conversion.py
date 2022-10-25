@@ -34,7 +34,7 @@ def findRpmTarVendoredDependencies():
 
     if rpm_and_tar:
         for path in rpm_and_tar:
-            filename = path.rsplit('/')[-1].rsplit('.',1)[0]
+            filename = path.rsplit('/')[-1].rsplit('.',1)[0].replace(' ', '')
 
             # take out dupes
             if not any(dep.get('name', None) == filename for dep in vendoredDeps["vendored-dependencies"]):
@@ -75,6 +75,8 @@ if __name__ == '__main__':
     vendoredDeps = findRpmTarVendoredDependencies()
     referencedDeps = findReferenceDependencies()
 
-    convertedDeps = {**vendoredDeps,**referencedDeps}
+    if convertedDeps:
+        saveFossaDepsJson(convertedDeps)
+    else:
+        print('No dependencies to save in a fossa-deps file')
 
-    saveFossaDepsJson(convertedDeps)
