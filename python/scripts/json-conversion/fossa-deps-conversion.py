@@ -74,7 +74,8 @@ if __name__ == '__main__':
 
     vendoredDeps = findRpmTarVendoredDependencies()
     referencedDeps = findReferenceDependencies()
-
+    convertedDeps = {**vendoredDeps,**referencedDeps}
+    
     if convertedDeps:
         saveFossaDepsJson(convertedDeps)
     else:
