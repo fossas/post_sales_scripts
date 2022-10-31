@@ -110,7 +110,7 @@ const ignoreNoStartingPointElected = error => {
 await Promise.map(locators, async dep => {
   if (result[dep] === undefined) {
     console.error(`Fetching revisions for ${dep}...`);
-    const revisionsForLocator = await fossa.getMasterRevisions(dep).catch(ignoreNoStartingPointElected);
+    const revisionsForLocator = await fossa.getMasterRevisions(dep, { count: 1000 }).catch(ignoreNoStartingPointElected);
     result[dep] = {};
     console.error(`Fetched ${revisionsForLocator.length} revision(s) for ${dep}`);
     revisionsForLocator.forEach(r => {

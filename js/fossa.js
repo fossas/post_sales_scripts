@@ -146,12 +146,16 @@ const fossa = (options) => {
     async listMinimal(params) {
       return axios.get('/issues/list-minimal', params).then(res => res.data);
     },
-    async getMasterRevisions(locator) {
+    // TODO This doesn't finish until all pages have been fetched. Consider
+    // adding a streaming version of this method that returns each page as
+    // it's fetched
+    async getMasterRevisions(locator, options) {
       let lastRevision = null;
       let result = [];
       const params = {
         refs: ['master'],
         refs_type: 'branch',
+        count: options.count,
       };
       do {
         params.cursor = lastRevision;
