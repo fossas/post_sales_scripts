@@ -128,7 +128,7 @@ await Promise.map(locators, async dep => {
     result[dep] = {};
     console.error(`Fetched ${revisionsForLocator.length} revision(s) for ${dep}`);
     revisionsForLocator.forEach(r => {
-      result[dep][r.locator] = undefined;
+      result[dep][r.locator] = null;
     });
     if (revisionsForLocator.length === 0) result[dep] = null;
   }
@@ -137,7 +137,7 @@ await Promise.map(locators, async dep => {
   await Promise.map(dependencyRevisions, async rev => {
     // For each known revision of each target locator, get the organization
     // projects that have it as a dependency
-    if (result[dep][rev] === undefined) {
+    if (result[dep][rev] === null) {
       console.error(`Fetching parent projects for ${rev}...`);
       const projects = await fossa.getParentProjects(rev);
       console.error(`Fetched ${projects.length} parent project(s) for ${rev}`);
