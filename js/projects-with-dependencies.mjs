@@ -10,7 +10,8 @@ import process from 'node:process';
 import pickBy from 'lodash.pickby';
 const fossaAPI = (await import('./fossa.js')).default
 
-const argv = yargs(hideBin(process.argv))
+
+const args = yargs(hideBin(process.argv))
   .command('$0', 'Finds all FOSSA projects with any of the specified dependencies')
   .example('$0 --locators mvn+log4j:log4j mvn+org.apache.logging.log4j:log4j-core mvn+org.apache.logging.log4j:log4j-api', 'Search for projects that depend on Log4j')
   .example(`$0 --locators-file locators.txt --progress-file ${path.resolve(os.tmpdir(), 'progress.json')}`, 'Search for projects that have any dependency listed in locators.txt')
@@ -37,7 +38,7 @@ const argv = yargs(hideBin(process.argv))
   .default('fossa-api-key', process.env.FOSSA_API_KEY, 'FOSSA_API_KEY environment variable')
   .version(false)
   .wrap(null)
-  .parse();
+const argv = args.parse();
 
 let fileLocators = [];
 if (argv['locators-file']) {
@@ -49,7 +50,7 @@ if (argv['locators-file']) {
 // Merge locators from file and CLI arguments
 const locators = [...new Set(fileLocators.concat(argv.locators || []))];
 if (locators.length === 0) {
-  console.error('No locators specified, exiting.');
+  args.showHelp();
   process.exit(1);
 }
 
