@@ -134,15 +134,20 @@ await Promise.map(locators, async dep => {
   }
 
   const dependencyRevisions = Object.keys(result[dep] || {});
-  await Promise.map(dependencyRevisions, async rev => {
+
+  // Promise.map's iteration order is undefined, so we can't rely on the
+  // iteratee index to show current progress
+  let i = 1;
+  await Promise.map(dependencyRevisions, async (rev, _, length) => {
     // For each known revision of each target locator, get the organization
     // projects that have it as a dependency
     if (result[dep][rev] === null) {
       console.error(`Fetching parent projects for ${rev}...`);
       const projects = await fossa.getParentProjects(rev);
-      console.error(`Fetched ${projects.length} parent project(s) for ${rev}`);
+      console.error(`Fetched ${projects.length} parent project(s) for ${rev} (${i}/${length})`);
       result[dep][rev] = projects;
     }
+    i++;
   }, { concurrency: argv.concurrency });
 }, { concurrency: argv.concurrency });
 
