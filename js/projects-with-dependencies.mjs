@@ -97,7 +97,6 @@ if (argv['progress-file']) {
 }
 
 const fossa = fossaAPI({ token: process.env.FOSSA_API_KEY, endpoint: argv.endpoint });
-const projectURL = locator => `${fossa.options.endpoint}/projects/${encodeURIComponent(locator)}`;
 
 const ignoreNoStartingPointElected = error => {
   if (error.response?.status === 500 && error.response?.data?.message?.includes('No starting point elected for revision traversal')) {
@@ -128,7 +127,7 @@ await Promise.map(locators, async dep => {
       console.error(`Fetching parent projects for ${rev}...`);
       const projects = await fossa.getParentProjects(rev);
       console.error(`Fetched ${projects.length} parent project(s) for ${rev}`);
-      result[dep][rev] = projects.map(p => ({...p, url: projectURL(p.locator)}));
+      result[dep][rev] = projects;
     }
   }, { concurrency: 10 });
 }, { concurrency: 10 });
