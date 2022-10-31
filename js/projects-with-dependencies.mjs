@@ -110,7 +110,7 @@ if (argv['progress-file']) {
   });
 }
 
-const fossa = fossaAPI({ token: process.env.FOSSA_API_KEY, endpoint: argv.endpoint });
+const fossa = fossaAPI({ token: argv.fossaApiKey, endpoint: argv.endpoint });
 
 const ignoreNoStartingPointElected = error => {
   if (error.response?.status === 500 && error.response?.data?.message?.includes('No starting point elected for revision traversal')) {
