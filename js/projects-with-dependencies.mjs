@@ -159,7 +159,7 @@ const final = Object.keys(result)
       // Only show revisions that are present in at least 1 project
       const filtered = pickBy(result[dependency], projects => projects.length > 0);
       if (Object.keys(filtered).length > 0) {
-        acc[dependency] = pickBy(result[dependency], projects => projects.length > 0);
+        acc[dependency] = filtered;
       }
     }
     return acc;
