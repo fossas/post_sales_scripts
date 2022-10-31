@@ -86,6 +86,14 @@ if (argv['progress-file']) {
     console.error(`Progress file ${file} does not exist, creating it...`);
     fs.openSync(file, 'w');
   }
+  try {
+    fs.accessSync(file, fs.constants.R_OK | fs.constants.W_OK);
+  } catch (err) {
+    if (err) {
+      console.error(`Error: progress file ${file} is not readable or writable`);
+      process.exit(1);
+    }
+  }
   const progress = fs.readFileSync(file, 'utf-8') || '{}';
   result = JSON.parse(progress);
   if (Object.keys(result).length > 0) {
