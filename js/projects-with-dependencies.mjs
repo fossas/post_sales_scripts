@@ -152,7 +152,10 @@ const final = Object.keys(result)
   .reduce((acc, dependency) => {
     if (locators.includes(dependency)) {
       // Only show revisions that are present in at least 1 project
-      acc[dependency] = pickBy(result[dependency], projects => projects.length > 0);
+      const filtered = pickBy(result[dependency], projects => projects.length > 0);
+      if (Object.keys(filtered).length > 0) {
+        acc[dependency] = pickBy(result[dependency], projects => projects.length > 0);
+      }
     }
     return acc;
   }, {});
