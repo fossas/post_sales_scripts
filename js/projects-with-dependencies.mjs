@@ -35,6 +35,11 @@ const args = yargs(hideBin(process.argv))
   .option('fossa-api-key', {
     type: 'string',
   })
+  .option('concurrency', {
+    type: 'number',
+    default: 50,
+    hidden: true,
+  })
   .default('fossa-api-key', process.env.FOSSA_API_KEY, 'FOSSA_API_KEY environment variable')
   .version(false)
   .wrap(null)
@@ -130,8 +135,8 @@ await Promise.map(locators, async dep => {
       console.error(`Fetched ${projects.length} parent project(s) for ${rev}`);
       result[dep][rev] = projects;
     }
-  }, { concurrency: 10 });
-}, { concurrency: 10 });
+  }, { concurrency: argv.concurrency });
+}, { concurrency: argv.concurrency });
 
 // If we loaded progress from a file, the progress may contain dependency
 // locators that were not requested. Filter them out before displaying the result.
