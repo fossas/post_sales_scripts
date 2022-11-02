@@ -6,6 +6,7 @@ const qs = require('qs');
 const isUnknownLocator = ({loc}) => loc.fetcher === null;
 
 const fossa = (options) => {
+  const projectURL = locator => `${options.endpoint}/projects/${encodeURIComponent(locator)}`;
   const headers = {};
   if (options.cookie) {
     // Using cookies is a workaround for when using a token returns incorrect
@@ -145,12 +146,16 @@ const fossa = (options) => {
     async listMinimal(params) {
       return axios.get('/issues/list-minimal', params).then(res => res.data);
     },
-    async getMasterRevisions(locator) {
+    // TODO This doesn't finish until all pages have been fetched. Consider
+    // adding a streaming version of this method that returns each page as
+    // it's fetched
+    async getMasterRevisions(locator, options) {
       let lastRevision = null;
       let result = [];
       const params = {
         refs: ['master'],
         refs_type: 'branch',
+        count: options.count,
       };
       do {
         params.cursor = lastRevision;
@@ -161,7 +166,9 @@ const fossa = (options) => {
       return result;
     },
     async getParentProjects(locator) {
-      return axios.get(`/revisions/${encodeURIComponent(locator)}/parent_projects`).then(res => res.data);
+      return axios.get(`/revisions/${encodeURIComponent(locator)}/parent_projects`).then(res => {
+        return res.data.map(p => ({...p, url: projectURL(p.locator)}));
+      });
     }
   };
 };

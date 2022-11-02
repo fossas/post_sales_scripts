@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fossas/post_sales_scripts.git"
@@ -24,6 +27,7 @@
     "lodash.groupby": "^4.6.0",
     "lodash.keyby": "^4.6.0",
     "lodash.merge": "^4.6.2",
+    "lodash.pickby": "^4.6.0",
     "qs": "^6.10.1",
     "yargs": "^17.2.1"
   }
