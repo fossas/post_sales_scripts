@@ -1,6 +1,7 @@
 from glob import glob
 import json
 import os
+import re
 
 def readArtifacts():
     data = {}
