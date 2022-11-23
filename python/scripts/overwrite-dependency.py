@@ -54,7 +54,7 @@ def build_dependency(title, version, description, dependencyUrl):
         logger.exception("Couldn't do it, fail")
         raise
 
-def replace_dependency_in_project(projectLocator, name, version, homepage, description, overwrittenDepLocator):
+def replace_dependency_in_project(revisionLocator, name, version, homepage, description, overwrittenDepLocator):
         """
         FOSSA replaces the dependency
         """
