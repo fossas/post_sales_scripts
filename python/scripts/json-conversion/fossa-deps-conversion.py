@@ -22,6 +22,7 @@ def saveFossaDepsJson(dictionary):
 
 def findRpmTarVendoredDependencies():
     reg = re.compile('[a-zA-Z0-9\.-_]')
+
     rpm_and_tar = []
 
     # walk the root of this current dir
@@ -36,10 +37,10 @@ def findRpmTarVendoredDependencies():
     if rpm_and_tar:
         for path in rpm_and_tar:
             filename = path.rsplit('/')[-1].rsplit('.',1)[0].replace(' ', '')
-            normalised_filename = "".join(reg.findall(filename))
-
+            normalised_filename =  "".join(reg.findall(filename))
+            
             # take out dupes
-            if not any(dep.get('name', None) == normalised_filename for dep in vendoredDeps["vendored-dependencies"]):
+            if not any(dep.get('name', None) == filename for dep in vendoredDeps["vendored-dependencies"]):
                 vendoredDeps["vendored-dependencies"].append({"name": normalised_filename, "path":path})
 
         print('Converted vendored dependencies...')
@@ -76,7 +77,10 @@ if __name__ == '__main__':
 
     vendoredDeps = findRpmTarVendoredDependencies()
     referencedDeps = findReferenceDependencies()
-
     convertedDeps = {**vendoredDeps,**referencedDeps}
+    
+    if convertedDeps:
+        saveFossaDepsJson(convertedDeps)
+    else:
+        print('No dependencies to save in a fossa-deps file')
 
-    saveFossaDepsJson(convertedDeps)
