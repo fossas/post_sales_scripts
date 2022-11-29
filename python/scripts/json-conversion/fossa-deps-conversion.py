@@ -36,7 +36,7 @@ def findRpmTarVendoredDependencies():
 
     if rpm_and_tar:
         for path in rpm_and_tar:
-            filename = path.rsplit('/')[-1].rsplit('.',1)[0].replace(' ', '')
+            filename = path.rsplit('/')[-1].rsplit('.',1)[0]
             normalised_filename =  "".join(reg.findall(filename))
             
             # take out dupes
