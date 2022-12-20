@@ -22,7 +22,6 @@ def saveFossaDepsJson(dictionary):
 
 def findRpmTarVendoredDependencies():
     reg = re.compile('[a-zA-Z0-9\.-_]')
-
     rpm_and_tar = []
 
     # walk the root of this current dir
@@ -37,14 +36,17 @@ def findRpmTarVendoredDependencies():
     if rpm_and_tar:
         for path in rpm_and_tar:
             filename = path.rsplit('/')[-1].rsplit('.',1)[0].replace(' ', '')
-            normalised_filename =  "".join(reg.findall(filename))
-            
-            # take out dupes
-            if not any(dep.get('name', None) == filename for dep in vendoredDeps["vendored-dependencies"]):
-                vendoredDeps["vendored-dependencies"].append({"name": normalised_filename, "path":path})
+            normalised_filename = "".join(reg.findall(filename))
+
+            # if not any(dep.get('name', None) == normalised_filename for dep in vendoredDeps["vendored-dependencies"]):
+            vendoredDeps["vendored-dependencies"].append({"name": normalised_filename, "path":path})
 
         print('Converted vendored dependencies...')
-        return vendoredDeps
+
+        cleansedVendoredDeps =  { "vendored-dependencies": removeDupedDeps(vendoredDeps["vendored-dependencies"], "name") }
+        print('Cleansed vendored dependencies...')
+
+        return cleansedVendoredDeps
     else:
         print('Vendored Dependencies: Nothing to convert...')
         return {}
@@ -73,14 +75,32 @@ def findReferenceDependencies():
         print('Referenced Dependencies: Nothing to convert...')
         return {}
 
+def removeDupedDeps(deps, target_key):
+
+    unique_deps = []
+    clean_deps = []
+    keys = []
+
+    for i, j in enumerate(deps):
+        if deps[i][target_key] not in unique_deps:
+            unique_deps.append(deps[i][target_key])
+            keys.append(i)
+
+    for key in keys:
+        clean_deps.append(deps[key])
+
+    return clean_deps
+
 if __name__ == '__main__':
 
+    # vendored
     vendoredDeps = findRpmTarVendoredDependencies()
-    referencedDeps = findReferenceDependencies()
-    convertedDeps = {**vendoredDeps,**referencedDeps}
-    
-    if convertedDeps:
-        saveFossaDepsJson(convertedDeps)
-    else:
-        print('No dependencies to save in a fossa-deps file')
 
+    # referenced
+    referencedDeps = findReferenceDependencies()
+
+    # all deps
+    convertedDeps = {**vendoredDeps,**referencedDeps}
+
+    # save deps
+    saveFossaDepsJson(convertedDeps)
