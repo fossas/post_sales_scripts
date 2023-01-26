@@ -1,6 +1,6 @@
 # Postman Collections :tada:
 
-Here's a set of useful collections that you can import into your environment
+Here's a set of useful collections that you can import into your environment.
 
 ### `FOSSA Licenses`
 
