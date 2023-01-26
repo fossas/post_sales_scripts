@@ -1,0 +1,209 @@
+{
+	"info": {
+		"_postman_id": "7df328de-2a1b-464c-92a5-2b53ce8e3aec",
+		"name": "FOSSA Licenses",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Approve a license",
+			"protocolProfileBehavior": {
+				"followAuthorizationHeader": true
+			},
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{FOSSA_API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"licenseId\": \"{{approved-licenses}}\",\n    \"type\": \"approved_license\",\n    \"notes\": \"\",\n    \"nameCondition\": null,\n    \"depthCondition\": null,\n    \"linkingCondition\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://app.fossa.com/api/policies/{{policyId}}/rules",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"policies",
+						"{{policyId}}",
+						"rules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Flag a license",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{FOSSA_API_KEY}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"licenseId\": \"{{flagged-licenses}}\",\n    \"type\": \"flagged_license\",\n    \"notes\": \"\",\n    \"nameCondition\": null,\n    \"depthCondition\": null,\n    \"linkingCondition\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://app.fossa.com/api/policies/{{policyId}}/rules",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"policies",
+						"{{policyId}}",
+						"rules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deny a license",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{FOSSA_API_TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"licenseId\": \"{{denied-licenses}}\",\n    \"type\": \"denied_license\",\n    \"notes\": \"\",\n    \"nameCondition\": null,\n    \"depthCondition\": null,\n    \"linkingCondition\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://app.fossa.com/api/policies/{{policyId}}/rules",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"policies",
+						"{{policyId}}",
+						"rules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Uncategorize a  license",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{FOSSA_API_TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://app.fossa.com/api/policies/{{policyId}}/rules/{{uncategorized-license-id}}",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"policies",
+						"{{policyId}}",
+						"rules",
+						"{{uncategorized-license-id}}"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{FOSSA_API_TOKEN}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "FOSSA_API_KEY",
+			"value": "some-token",
+			"type": "default"
+		}
+	]
+}
