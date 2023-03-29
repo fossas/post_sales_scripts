@@ -45,3 +45,46 @@ Here's an example payload of that:
 }
 ```
 Do note that specifying the policies and teams are optional though, so you'd have to adjust the first request payload above accordingly.
+
+
+
+### Update an existing release group
+
+Here's the endpoint: `PUT https://app.fossa.com/api/project_group/<project-group-id>/release/<release-group-id>`,
+where `<project-group-id>` is basically the ID of the release group and `<release-group-id>` is the version of release group.
+
+Here's the request payload to update an existing release group:
+```
+{
+	"title": "<specify-existing-version>",
+	"projects": [{
+		"projectId": "<project-locator>",
+		"branch": "<branch>",
+		"revisionId": "<project-locator>$<revision-id>",
+		"projectGroupReleaseId": <release-group-id-which-is-basically-the-version>
+	}],
+	"projectsToDelete": []
+}
+```
+Example:
+
+```
+{
+	"title": "1.0",
+	"projects": [{
+		"projectId": "custom+8617/dummycom/experience-everything/experience-something",
+		"branch": "main",
+		"revisionId": "custom+8617/dummycom/experience-everything/experience-something$some-revision-id",
+		"projectGroupReleaseId": some-number
+	}]
+	"projectsToDelete": []
+}
+```
+
+You can get the latest revision by sorting the response by updatedAt
+API: `https://app.fossa.com/api/revisions?projectId=<url-encoded-project-locator>`
+
+### Troubleshooting
+
+#### What if I receive a 500 error code from running this POST endpoint?
+It could mean that you have duped projects in the request payload.
