@@ -1,0 +1,267 @@
+{
+	"info": {
+		"_postman_id": "967ee169-48ef-45f5-8d72-b7da447b02f1",
+		"name": "Uploading SBOMs via the API",
+		"description": "This collection provides examples for uploading SBOMs programatically.\n\nDon't forget to set your variables! You'll need a FOSSA API key that's capable of adding new projects.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Getting a Signed URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the response body",
+							"const responseBody = pm.response.json();",
+							"",
+							"// Save the signedUrl in a collection variable",
+							"pm.collectionVariables.set(\"signed_url\", responseBody.signedUrl);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://app.fossa.com/api/components/signed_url?packageSpec={{sbom_name}}&revision={{sbom_revision}}&fileType=sbom",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"components",
+						"signed_url"
+					],
+					"query": [
+						{
+							"key": "packageSpec",
+							"value": "{{sbom_name}}"
+						},
+						{
+							"key": "revision",
+							"value": "{{sbom_revision}}"
+						},
+						{
+							"key": "fileType",
+							"value": "sbom"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Uploading Your Project to the Signed URL",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": ""
+					}
+				},
+				"url": {
+					"raw": "{{signed_url}}",
+					"host": [
+						"{{signed_url}}"
+					]
+				},
+				"description": "You'll need to manually include your file for this example. JSON and XML files are supported."
+			},
+			"response": []
+		},
+		{
+			"name": "Getting a Team ID (Optional)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the response body",
+							"const responseBody = pm.response.json();",
+							"",
+							"// Save the teamId in a collection variable",
+							"pm.collectionVariables.set(\"team_id\", responseBody[0].id);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "app.fossa.com/api/teams",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"teams"
+					]
+				},
+				"description": "This assumes that the user is only in a single team, and only has access to view a single team."
+			},
+			"response": []
+		},
+		{
+			"name": "Getting a Team Name (Optional)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Parse the response body",
+							"const responseBody = pm.response.json();",
+							"",
+							"// Save the teamId in a collection variable",
+							"pm.collectionVariables.set(\"team_name\", responseBody[0].name);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "app.fossa.com/api/teams",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"teams"
+					]
+				},
+				"description": "This assumes that the user is only in a single team, and only has access to view a single team."
+			},
+			"response": []
+		},
+		{
+			"name": "Triggering the Build",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    // Uncomment to specify a team for your build.\n    //    \"selectedTeams\": [\n    //        {\n    //            \"id\": {{team_id}}\n    //            //OR\n    //            \"name\": \"{{team_name}}\"\n    //        }\n    //    ],\n    \"archives\": [\n        {\n            \"packageSpec\": \"{{sbom_name}}\",\n            \"revision\": \"{{sbom_revision}}\",\n            \"fileType\": \"sbom\"\n        }\n    ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://app.fossa.com/api/components/build?fileType=sbom",
+					"protocol": "https",
+					"host": [
+						"app",
+						"fossa",
+						"com"
+					],
+					"path": [
+						"api",
+						"components",
+						"build"
+					],
+					"query": [
+						{
+							"key": "fileType",
+							"value": "sbom"
+						}
+					]
+				},
+				"description": "If you'd like to specify a team to add the build to, you'll have to uncomment the `selectedTeams` fields. You can use a team name or id, but not both."
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{fossa_api_key}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "fossa_api_key",
+			"value": "Required",
+			"type": "string"
+		},
+		{
+			"key": "sbom_name",
+			"value": "Required",
+			"type": "default"
+		},
+		{
+			"key": "sbom_revision",
+			"value": "Required",
+			"type": "default"
+		},
+		{
+			"key": "signed_url",
+			"value": "Automatically Generated",
+			"type": "string"
+		},
+		{
+			"key": "team_id",
+			"value": "Optional Integer",
+			"type": "string"
+		},
+		{
+			"key": "team_name",
+			"value": "Optional String",
+			"type": "string"
+		}
+	]
+}
