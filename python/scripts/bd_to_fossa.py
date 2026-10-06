@@ -11,10 +11,10 @@
 #     - export FOSSA_API_KEY="<fossa api key>"
 #
 #   - Run the script:
-#     - python3 blackduck_to_fossa_sbom.py                 # full run (resumes from the CSV if present)
-#     - python3 blackduck_to_fossa_sbom.py --dry-run       # enumerate only; no reports created, nothing uploaded
-#     - python3 blackduck_to_fossa_sbom.py --sbom-type SPDX_23
-#     - python3 blackduck_to_fossa_sbom.py --help
+#     - python3 bd_to_fossa.py             # full run (resumes from the CSV if present)
+#     - python3 bd_to_fossa.py --dry-run   # enumerate only; no reports created, nothing uploaded
+#     - python3 bd_to_fossa.py --sbom-type SPDX_23
+#     - python3 bd_to_fossa.py --help
 #
 #   Resumability:
 #     Every (project, version) row is written to the CSV as it finishes. On the next run,
@@ -27,6 +27,7 @@
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import re
@@ -81,6 +82,7 @@ DRY_RUN = args.dry_run
 REUSE_EXISTING_REPORTS = not args.no_reuse
 SBOM_POLL_SECONDS = 5
 SBOM_POLL_TIMEOUT = 15 * 60     # give up on a single report after 15 min
+FOSSA_CLI_TIMEOUT = 30 * 60     # give up on a single `fossa sbom analyze` after 30 min
 
 # sbomType -> "specification" string. Newer Black Duck releases accept/expect
 # `specification` on POST /sbom-reports; older ones ignore it and use sbomType.
@@ -174,7 +176,7 @@ results: Dict[Tuple[str, str], Dict] = {}
 def load_previous_results() -> None:
     if args.fresh or not os.path.exists(CSV_OUTPUT_FILE):
         return
-    with open(CSV_OUTPUT_FILE, newline="") as f:
+    with open(CSV_OUTPUT_FILE, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             # tolerate CSVs written by older versions of this script
             row = {k: row.get(k, "") for k in CSV_FIELDS}
@@ -185,7 +187,7 @@ def load_previous_results() -> None:
 
 def write_csv() -> None:
     tmp = CSV_OUTPUT_FILE + ".tmp"
-    with open(tmp, "w", newline="") as f:
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=CSV_FIELDS)
         w.writeheader()
         for row in results.values():
@@ -512,7 +514,7 @@ def validate_sbom(path: str) -> Dict[str, str]:
     Parse the SBOM and return {sbom_format, sbom_spec_version, component_count}.
     Raises ValueError on malformed input, EmptySBOM if there are no components.
     """
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         doc = json.load(f)
 
     if "bomFormat" in doc:                       # CycloneDX
@@ -570,9 +572,21 @@ def upload_to_fossa(sbom_path: str, project_name: str, revision: str, log_path: 
     ]
     print("    ▶ Running:", " ".join(cmd))
 
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    with open(log_path, "w") as f:
-        f.write(f"$ {' '.join(cmd)}\n\n--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}\n")
+    def write_log(stdout: str, stderr: str) -> None:
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(f"$ {' '.join(cmd)}\n\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}\n")
+
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=FOSSA_CLI_TIMEOUT)
+    except subprocess.TimeoutExpired as e:
+        # Partial output on TimeoutExpired can be bytes even with text=True.
+        def as_text(out) -> str:
+            return out.decode("utf-8", "replace") if isinstance(out, bytes) else (out or "")
+        write_log(as_text(e.stdout), as_text(e.stderr))
+        raise RuntimeError(f"fossa timed out after {FOSSA_CLI_TIMEOUT}s") from e
+
+    write_log(proc.stdout, proc.stderr)
 
     if proc.returncode != 0:
         tail = (proc.stderr or proc.stdout).strip().splitlines()[-5:]
@@ -584,6 +598,20 @@ def upload_to_fossa(sbom_path: str, project_name: str, revision: str, log_path: 
 # ============================================================
 # Main
 # ============================================================
+
+_UNSAFE_FILENAME_RE = re.compile(r'[<>:"/\\|?*\x00-\x1f\s]+')
+
+
+def safe_filename(project_name: str, version_name: str) -> str:
+    """
+    Filesystem-safe (incl. Windows) stem for this project/version.
+    Sanitizing is lossy ('a b' and 'a/b' both become 'a_b'), so a short hash of
+    the raw names is appended to keep stems unique.
+    """
+    stem = _UNSAFE_FILENAME_RE.sub("_", f"{project_name}__{version_name}").strip("._")[:150]
+    digest = hashlib.sha1(f"{project_name}\0{version_name}".encode("utf-8")).hexdigest()[:8]
+    return f"{stem}__{digest}"
+
 
 def keep(project: Dict, version: Dict) -> bool:
     return all(f(project, version) for f in FILTERS)
@@ -644,9 +672,9 @@ def main():
                 row["report_url"] = prev.get("report_url", "")
             results[key] = row
 
-            safe_filename = f"{project_name}__{version_name}".replace("/", "_").replace(" ", "_")
-            sbom_path = os.path.join(SBOM_OUTPUT_DIR, safe_filename + SBOM_FILE_EXT)
-            log_path = os.path.join(FOSSA_LOG_DIR, safe_filename + ".log")
+            file_stem = safe_filename(project_name, version_name)
+            sbom_path = os.path.join(SBOM_OUTPUT_DIR, file_stem + SBOM_FILE_EXT)
+            log_path = os.path.join(FOSSA_LOG_DIR, file_stem + ".log")
             row["sbom_path"] = sbom_path
 
             print(f"  └── Revision: {version_name}")
