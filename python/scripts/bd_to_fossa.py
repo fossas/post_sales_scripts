@@ -30,7 +30,9 @@ import csv
 import json
 import os
 import re
+import shutil
 import subprocess
+import sys
 import time
 import zipfile
 from typing import Dict, List, Optional, Tuple
@@ -365,7 +367,9 @@ def find_existing_report(version_href: str) -> Optional[str]:
     """
     try:
         reports = get_paginated(f"{version_href}/sbom-reports", REPORT_ACCEPT_TYPES)
-    except requests.HTTPError:
+    except requests.RequestException:
+        # RequestException also covers RetryError, which the session raises
+        # (instead of HTTPError) once 429/5xx retries are exhausted.
         return None
 
     wanted_spec = SBOM_SPECIFICATION.get(SBOM_TYPE, "")
@@ -486,6 +490,9 @@ def download_sbom(report_url: str, report_json: Dict, output_path: str) -> str:
         members = [m for m in zf.namelist() if m.endswith(".json")]
         if not members:
             raise RuntimeError(f"No JSON SBOM found in {zip_path}: {zf.namelist()}")
+        members.sort()
+        if len(members) > 1:
+            print(f"    ⚠️  Zip contains {len(members)} JSON files {members}; using {members[0]!r}")
         with zf.open(members[0]) as src, open(output_path, "wb") as dst:
             dst.write(src.read())
 
@@ -554,6 +561,9 @@ def upload_to_fossa(sbom_path: str, project_name: str, revision: str, log_path: 
     cmd = [
         "fossa", "sbom", "analyze",
         "--project", fossa_project_id(project_name),
+        # TODO(Carlos): `fossa sbom analyze` has no --title flag (checked up to fossa-cli v3.20.0),
+        # so this makes every upload fail. Can you clarify the intent? Should we drop it,
+        # or set the title afterwards via the FOSSA API?
         "--title", project_name,          # human-readable name in the FOSSA UI
         "--revision", revision,
         sbom_path,
@@ -577,6 +587,19 @@ def upload_to_fossa(sbom_path: str, project_name: str, revision: str, log_path: 
 
 def keep(project: Dict, version: Dict) -> bool:
     return all(f(project, version) for f in FILTERS)
+
+
+def preflight() -> None:
+    """Fail fast on missing FOSSA prerequisites, before generating any Black Duck reports."""
+    if DRY_RUN:
+        return
+    problems = []
+    if shutil.which("fossa") is None:
+        problems.append("`fossa` CLI not found on PATH")
+    if not os.environ.get("FOSSA_API_KEY"):
+        problems.append("FOSSA_API_KEY is not set")
+    if problems:
+        sys.exit("Preflight failed:\n  - " + "\n  - ".join(problems))
 
 
 def main():
@@ -685,6 +708,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # Outside the try: exiting here must not trigger write_csv() and clobber an existing CSV.
+    preflight()
     try:
         main()
     finally:
