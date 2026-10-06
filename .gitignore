@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 fossa.debug.json.gz
+
+.atl/
+.idea/
