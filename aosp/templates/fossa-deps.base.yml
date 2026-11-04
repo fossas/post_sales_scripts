@@ -4,6 +4,8 @@
 # from external/*/METADATA, maven entries from prebuilt jars' pom.properties) are generated, and this file
 # is appended verbatim for the two sections that are judgment calls the tree cannot prove.
 # Delete the examples below and declare your own; keep at least the two section headers.
+# A referenced-dependencies: block here (upstreams the tree carries no METADATA for) is merged into the
+# generated referenced-dependencies section, not appended: two copies of that key would leave fossa-cli only the last.
 
 vendored-dependencies:
   # Every component coverage.md lists as tier 2 or 3 (upstream not on github, or not a git repository)
