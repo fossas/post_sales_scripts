@@ -278,9 +278,6 @@ def emit_fossa_deps(entries: list[dict], pilot: int | None) -> str:
         lines.append("- type: git")
         lines.append(f"  name: github.com/{owner}/{repo}")
         lines.append(f"  version: {json.dumps(e['version'])}")
-    if skipped_paths:
-        lines += ["", "METADATA files NOT scanned because a path segment is on the skip-list (move them, or edit SKIP_DIRS, if they are real components):", ""]
-        lines += [f"- `{p}`" for p in sorted(skipped_paths)]
     lines.append("")
     return "\n".join(lines)
 
@@ -389,6 +386,9 @@ def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[st
     if first_party:
         lines += ["", "First-party-classified METADATA (audit these — a parse miss lands here):", ""]
         lines += [f"- `{e['path']}`" for e in sorted(first_party, key=lambda x: x["path"])]
+    if skipped_paths:
+        lines += ["", "METADATA files NOT scanned because a path segment is on the skip-list (move them, or edit SKIP_DIRS, if they are real components):", ""]
+        lines += [f"- `{p}`" for p in sorted(skipped_paths)]
     lines.append("")
     return "\n".join(lines)
 
