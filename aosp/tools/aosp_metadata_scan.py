@@ -326,8 +326,9 @@ def emit_cyclonedx(entries: list[dict], project_name: str, project_version: str,
                   file=sys.stderr)
         seen_names.setdefault(e["name"], e["path"])
         comp = {
-            # bom-ref from the file path, unique by construction (METADATA
-            # names repeat across nested third_party trees).
+            # bom-ref from the sanitized file path; two different paths can sanitize to the same string
+            # (external/foo-bar vs external/foo/bar), so repeats get a -2/-3 suffix: CycloneDX requires
+            # refs to be unique within the BOM.
             "bom-ref": unique_ref("pkg-" + re.sub(r"[^A-Za-z0-9._-]", "-", e["path"].removesuffix("/METADATA"))),
             "type": "library",
             "name": e["name"],

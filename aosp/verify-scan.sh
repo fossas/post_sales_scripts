@@ -103,7 +103,8 @@ for raw in sys.stdin.read().split("\n"):
     rows+=page
     if total is not None and len(rows)>=total: break
 if msg: print("  ", msg); sys.exit()
-print("   records:", len(rows), "| totalCount:", total, "| kinds:", dict(Counter(r.get("kind") for r in rows)),
-      "" if total is None or len(rows) >= total else "| TRUNCATED: fewer rows than totalCount were returned")
+line = "   records: %d | totalCount: %s | kinds: %s" % (len(rows), total, dict(Counter(r.get("kind") for r in rows)))
+if total is not None and len(rows) < total: line += " | TRUNCATED: fewer rows than totalCount were returned"
+print(line)
 for r in rows:
     if r.get("kind")=="snippet": print("     snippet:", r.get("package"), r.get("version"), "match", r.get("highestMatchPercentage"))'

@@ -118,8 +118,13 @@ def git_from_metadata(root, out_dir):
         sys.exit("aosp_metadata_scan.py failed:\n" + res.stderr)
     summary = next((l for l in res.stdout.splitlines() if l.startswith("parsed=")), "").strip()
     for l in res.stderr.splitlines():
-        if l.startswith("warn: unreadable"):
-            print("  note: " + l[len("warn: "):] + " — this component is NOT covered (see coverage.md)")
+        if l.startswith("warn: unreadable "):
+            # "warn: unreadable <abs path>: <ExcClass>: <msg>: '<abs path>'" -> one relative path, the error class only
+            rest = l[len("warn: unreadable "):]
+            abs_path, _, err = rest.partition(": ")
+            err = re.sub(r":\s*'[^']*'$", "", err)                      # drop the path OSError repeats at the end
+            rel = os.path.relpath(abs_path, root) if abs_path.startswith(root) else abs_path
+            print(f"  note: unreadable {rel} ({err}) — this component is NOT covered (see coverage.md)")
     text = open(os.path.join(out_dir, "fossa-deps.yml")).read()
     lines, inside = [], False
     for line in text.splitlines():
