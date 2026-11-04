@@ -1,0 +1,43 @@
+# fossa-deps.base.yml — the hand-maintained part of fossa-deps.yml.
+#
+# tools/gen-fossa-deps.py writes fossa-deps.yml on every scan: the referenced-dependencies (git entries
+# from external/*/METADATA, maven entries from prebuilt jars' pom.properties) are generated, and this file
+# is appended verbatim for the two sections that are judgment calls the tree cannot prove.
+# Delete the examples below and declare your own; keep at least the two section headers.
+# A referenced-dependencies: block here (upstreams the tree carries no METADATA for) is merged into the
+# generated referenced-dependencies section, not appended: two copies of that key would leave fossa-cli only the last.
+
+vendored-dependencies:
+  # Every component coverage.md lists as tier 2 or 3 (upstream not on github, or not a git repository)
+  # needs an entry here; the generator does not add them. FOSSA archives the directory, uploads it and
+  # license-scans every file. Name + version are cached organization-wide (first scan wins); bump the
+  # version when the contents change.
+  - name: external-freetype
+    path: external/freetype
+    version: "2.13.2"
+    metadata:
+      description: "FreeType as vendored in external/freetype (pin from its METADATA file)"
+      homepage: "https://freetype.org"
+  - name: external-sqlite
+    path: external/sqlite
+    version: "3.42.0"
+    metadata:
+      description: "SQLite amalgamation as vendored in external/sqlite (fossil upstream, no git locator)"
+      homepage: "https://sqlite.org"
+  # The prebuilt jar directory itself: FOSSA unarchives each jar and license-scans what is inside,
+  # which catches license texts the registry entry does not carry.
+  - name: prebuilt-libs
+    path: prebuilts/libs
+    version: "android-15.0.0_r1"
+
+custom-dependencies:
+  # Proprietary or partner code: inventory plus the declared license, no vulnerability data.
+  # Use an identifier FOSSA resolves: an SPDX id, or `proprietary-license`. Observed 2026-11-04 on
+  # app.fossa.com: `proprietary-license` and `MIT` read back as licenses; `Proprietary` (the value in
+  # fossa-cli's own fossa-deps.md example) and any `LicenseRef-...` read back empty, i.e. the row shows
+  # as an unlicensed dependency until you conclude its license in the UI.
+  - name: vehicle-platform-sdk
+    version: "3.2.0"
+    license: "proprietary-license"
+    metadata:
+      description: "Vehicle platform SDK (prebuilts/partner-sdk); no open-source code inside"

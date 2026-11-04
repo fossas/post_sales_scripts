@@ -1,0 +1,35 @@
+# .fossa.yml — starting point for an AOSP / Android Automotive vendor tree.
+# Copy to the tree root as `.fossa.yml` and edit the three marked lines.
+version: 3
+
+project:
+  id: my-vendor-tree # EDIT: the project locator becomes custom+<org>/<id>; keep it stable, vary -r per scan
+  name: "My vendor tree (Android Automotive)" # EDIT: display title, honored when the project is first created
+  labels:
+    - aosp
+
+# Manifest-strategy discovery is scoped to the Gradle app(s). Everything else in the tree has no
+# manifest fossa-cli could read (Soong/Android.bp) and is covered by fossa-deps.yml, Vendetta and the
+# snippet scan. Add every directory that is not a Gradle project you want analyzed.
+paths:
+  exclude:
+    - external
+    - prebuilts
+    - hardware # EDIT: wherever copied-in C/C++ libraries live (Vendetta covers them)
+    - .fossa-out
+
+# Gradle: read only the release runtime classpath of each module (what ships), not AGP's internal
+# test-platform configurations (com.android.tools.utp:*), which are unresolvable in FOSSA's registry.
+# CAVEAT: `experimental.gradle.configurations-only` is documented by fossa-cli as experimental and
+# removable without warning (works on 3.20.4). Pin the CLI version in CI; the supported fallback is
+# target/path scoping plus triage of the unresolved rows.
+experimental:
+  gradle:
+    configurations-only:
+      - releaseRuntimeClasspath
+
+# Deliberately NOT set: vendoredDependencies.licenseScanPathFilters. In an organization whose vendored
+# scan method resolves to archive upload, that block together with any vendored-dependencies entry makes
+# fossa-cli drop the WHOLE fossa-deps unit with exit 0. Vendetta and the snippet scan already follow
+# .gitignore and skip hidden directories; if you need the filters, set
+# `vendoredDependencies.scanMethod: CLILicenseScan` as well.
