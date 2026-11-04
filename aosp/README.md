@@ -119,7 +119,10 @@ yielded a coordinate, or `external/` exists but no METADATA produced a tier-1 gi
 carried a lane (git or maven) that this walk produced none of, whatever the directory layout (the reason is
 printed, the previous `fossa-deps.yml` is left in place, `--allow-empty-lanes` overrides); 1 when the
 METADATA generator itself crashed. `--check` exits 2 when the committed file no longer matches the tree (same class as an empty lane: regenerate and commit),
-which is the CI gate for "someone edited the generated file by hand".
+which is the CI gate for "someone edited the generated file by hand". A partial drop, one directory's METADATA gone while
+another directory still yields tier-1 entries, passes every floor by design (an `external/` made only of tier-2/3 upstreams
+is legitimate); it shows up as the per-directory tier-1 counts on the summary line (`tier1_by_dir=external:5,vendor:1`)
+and as a diff of the committed `fossa-deps.yml`, which `--check` turns into exit 2 in CI.
 
 Only names, versions and URLs are produced; the generator makes no network calls.
 

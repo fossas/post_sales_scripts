@@ -480,7 +480,15 @@ def main() -> int:
     (args.out_dir / "coverage.md").write_text(emit_coverage(entries, str(args.root), skipped_paths, unreadable_paths))
 
     t = lambda n: sum(1 for e in entries if e["tier"] == n)  # noqa: E731
-    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)} unreadable={len(unreadable_paths)}")
+    # tier-1 count per top-level directory: a directory whose METADATA vanished while another still yields
+    # tier-1 entries passes every lane floor by design, so make the per-directory shape visible in the log
+    by_dir: dict[str, int] = {}
+    for e in entries:
+        if e["tier"] == 1:
+            top = str(e["path"]).split("/")[0] or "."
+            by_dir[top] = by_dir.get(top, 0) + 1
+    tier1_by_dir = ",".join(f"{d}:{n}" for d, n in sorted(by_dir.items())) or "-"
+    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)} unreadable={len(unreadable_paths)} tier1_by_dir={tier1_by_dir}")
     print(f"wrote: {args.out_dir / 'fossa-deps.yml'}, {args.out_dir / 'aosp-sbom.cdx.json'}, {args.out_dir / 'coverage.md'}")
     return 0
 
