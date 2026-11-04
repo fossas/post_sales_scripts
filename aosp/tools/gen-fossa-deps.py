@@ -219,10 +219,14 @@ def main():
         parts.append("\n" + HAND_SECTIONS_MARKER + "\n")
         parts.append(base.rstrip("\n") + "\n")
     content = "".join(parts)
-    keys = len(re.findall(REF_KEY, content, re.M))
-    if keys != 1:   # post-condition: whatever shape the base file took, the output carries exactly one such key
-        print(f"gen-fossa-deps: ERROR the generated file would carry {keys} top-level referenced-dependencies keys "
-              "(fossa-cli keeps only the last); declare references in fossa-deps.base.yml as one block-form list", file=sys.stderr)
+    # post-condition, whatever shape the base file took: every top-level key appears exactly once (a YAML parser
+    # keeps only one of two identical keys, which is how the referenced-dependencies lane was silently lost)
+    top_keys = re.findall(r"^[\"']?([A-Za-z][\w-]*)[\"']?\s*:", content, re.M)
+    dupes = sorted({k for k in top_keys if top_keys.count(k) > 1})
+    if dupes or top_keys.count("referenced-dependencies") != 1:
+        print("gen-fossa-deps: ERROR the generated file would carry a duplicated top-level key (%s); a YAML parser keeps only "
+              "one of them; fix fossa-deps.base.yml: one document, one block-form list per key"
+              % (", ".join(dupes) or "referenced-dependencies"), file=sys.stderr)
         sys.exit(2)
     target = os.path.join(root, "fossa-deps.yml")
     current = open(target).read() if os.path.exists(target) else None
