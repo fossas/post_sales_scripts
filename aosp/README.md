@@ -115,7 +115,8 @@ and the snippet scan are expensive the first time they see a tree and cheap afte
    `fossa-deps.yml` section you need, such as `fork-aliases`, can live there as well.
 
 Exit codes: 0 when the file was written or already matched; 2 when `prebuilts/` exists but no archive
-yielded a coordinate, or `external/` exists but no METADATA produced a tier-1 git entry (the reason is
+yielded a coordinate, or `external/` exists but no METADATA produced a tier-1 git entry, or the previous `fossa-deps.yml`
+carried a lane (git or maven) that this walk produced none of, whatever the directory layout (the reason is
 printed, the previous `fossa-deps.yml` is left in place, `--allow-empty-lanes` overrides); 1 when the
 METADATA generator itself crashed. `--check` exits 2 when the committed file no longer matches the tree (same class as an empty lane: regenerate and commit),
 which is the CI gate for "someone edited the generated file by hand".

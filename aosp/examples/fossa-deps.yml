@@ -6,6 +6,8 @@
 #   referenced-dependencies / git    external/* projects, derived from their AOSP METADATA files
 #                                    (tools/aosp_metadata_scan.py). FOSSA fetches the upstream at the
 #                                    pinned tag/SHA server-side: license scan of the real upstream + CVEs by version.
+#                                    Names are lowercase on purpose: locators that differ only in case are distinct
+#                                    components in FOSSA, and vulnerability data does not carry across the two rows.
 #   referenced-dependencies / maven  prebuilt jars Soong consumes via java_import (prebuilts/**). Coordinates
 #                                    are read from META-INF/maven/**/pom.properties inside each jar at generation
 #                                    time; FOSSA resolves them against Maven Central: license + CVEs by version.
