@@ -41,8 +41,8 @@ fi
 mkdir -p .fossa-out
 
 if [ -z "${FOSSA_EXPECT_GRADLE:-}" ]; then
-  if find . \( -path ./external -o -path ./prebuilts -o -path ./out -o -path ./.fossa-out -o -path ./.git \) -prune -o \
-       \( -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'settings.gradle' -o -name 'settings.gradle.kts' \) -print 2>/dev/null | grep -q .; then
+  if [ -n "$(find . \( -path ./external -o -path ./prebuilts -o -path ./out -o -path ./.fossa-out -o -path ./.git \) -prune -o \
+       \( -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'settings.gradle' -o -name 'settings.gradle.kts' \) -print -quit 2>/dev/null)" ]; then
     FOSSA_EXPECT_GRADLE=1
   else
     FOSSA_EXPECT_GRADLE=0
@@ -79,6 +79,10 @@ fossa analyze \
 #  - the Gradle unit is absent or failed when the build environment is missing (no JDK/SDK/reachable repositories).
 if grep -q "fossa-deps file analysis: failed" ".fossa-out/analyze-$REV.log"; then
   echo "ERROR: the fossa-deps unit was dropped from this upload; see the error lines above and README, 'Path filters and archive uploads'" >&2
+  exit 1
+fi
+if grep -q "gradle project in .*: failed" ".fossa-out/analyze-$REV.log"; then
+  echo "ERROR: a Gradle unit failed in this upload (see the error lines above); the revision is incomplete" >&2
   exit 1
 fi
 if [ "$FOSSA_EXPECT_GRADLE" = "1" ] && ! grep -q "gradle project in .*: succeeded" ".fossa-out/analyze-$REV.log"; then

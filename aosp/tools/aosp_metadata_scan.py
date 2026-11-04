@@ -300,12 +300,15 @@ def pilot_cohort(entries: list[dict], pilot: int) -> list[dict]:
 def _ref_factory():
     """bom-refs are derived from sanitized paths; `external/foo-bar` and `external/foo/bar` sanitize to
     the same string, and CycloneDX requires refs to be unique within the BOM, so repeats get a suffix."""
-    used: dict[str, int] = {}
+    assigned: set[str] = set()
 
     def unique(ref: str) -> str:
-        n = used.get(ref, 0)
-        used[ref] = n + 1
-        return ref if n == 0 else f"{ref}-{n + 1}"
+        candidate, n = ref, 1
+        while candidate in assigned:          # generated suffixes are reserved too (pkg-a, pkg-a-2, pkg-a -> pkg-a-3)
+            n += 1
+            candidate = f"{ref}-{n}"
+        assigned.add(candidate)
+        return candidate
     return unique
 
 

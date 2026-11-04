@@ -84,5 +84,7 @@ assert m.cpe23("cpe:/a:vendor:product:1.0:sp1:pro:en", None) == "cpe:2.3:a:vendo
 assert m.cpe23("cpe:/a:vendor:product", None) == "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"
 _u = m._ref_factory()
 assert [_u("pkg-external-foo-bar"), _u("pkg-external-foo-bar"), _u("pkg-x")] == ["pkg-external-foo-bar", "pkg-external-foo-bar-2", "pkg-x"]
+_u = m._ref_factory()
+assert [_u("pkg-a"), _u("pkg-a-2"), _u("pkg-a")] == ["pkg-a", "pkg-a-2", "pkg-a-3"]   # a generated suffix is reserved too
 
 print("all shape scenarios pass; corpus: " + _line)
