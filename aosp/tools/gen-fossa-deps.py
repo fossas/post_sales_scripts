@@ -123,7 +123,8 @@ def git_from_metadata(root, out_dir):
     summary = next((l for l in res.stdout.splitlines() if l.startswith("parsed=")), "").strip()
     for l in res.stderr.splitlines():
         if l.startswith("warn: unreadable "):
-            # "warn: unreadable <abs path>: <ExcClass>: <msg>: '<abs path>'" -> one relative path, the error class only
+            # scanner line: "warn: unreadable <abs path>: [Errno 13] Permission denied: '<abs path>'" -> print the path once,
+            # relative, with the error text only (the exception class name is what coverage.md records)
             rest = l[len("warn: unreadable "):]
             abs_path, _, err = rest.partition(": ")
             err = re.sub(r":\s*'[^']*'$", "", err)                      # drop the path OSError repeats at the end
