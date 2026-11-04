@@ -62,7 +62,7 @@ def split_base_references(base):
     Returns (base text without the block, the block's items re-indented for the generated section)."""
     kept, block, inside, seen = [], [], False, False
     for line in base.split("\n"):
-        if line.rstrip() in ("---", "..."):
+        if re.match(r"^(?:---|\.\.\.)(?:\s+#.*)?\s*$", line):   # document markers, with or without a trailing comment
             continue
         if re.match(REF_KEY + r"\s*(\[\s*\])?\s*(#.*)?$", line):
             inside = seen = True   # the key line is dropped either way
