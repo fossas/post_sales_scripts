@@ -81,7 +81,7 @@ def split_base_references(base):
               file=sys.stderr)
         sys.exit(2)
     if not seen:
-        return base, []
+        return "\n".join(kept), []   # no block to lift, but the document markers are still dropped
     items = [l for l in block if l.strip()]
     if not items:
         return "\n".join(kept), []
@@ -244,7 +244,8 @@ def main():
         # count the previous file's WALK-generated region only: hand-declared references and the base sections are
         # not walk output, and counting them made the floor fire on every run after the first for a tree whose base
         # file declares upstreams by hand
-        region = current[current.find("referenced-dependencies:"):] if "referenced-dependencies:" in current else ""
+        m = re.search(REF_KEY, current, re.M)
+        region = current[m.start():] if m else ""
         for marker in (HAND_REFS_MARKER, HAND_SECTIONS_MARKER):
             cut = region.find(marker)
             if cut >= 0:
