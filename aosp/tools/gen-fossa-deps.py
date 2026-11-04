@@ -60,6 +60,11 @@ def split_base_references(base):
     on the key line is fine, so is a quoted key; an inline `[]` is an empty block): a non-empty inline
     `[...]` list is refused. YAML document markers (`---`, `...`) are dropped: the output is one document.
     Returns (base text without the block, the block's items re-indented for the generated section)."""
+    explicit = [l for l in base.split("\n") if re.match(r"^\?(\s|$)", l)]
+    if explicit:   # explicit mapping-key syntax (`? key` / `: value`) cannot be checked for duplicates without a YAML parser
+        print("gen-fossa-deps: ERROR fossa-deps.base.yml uses explicit mapping-key syntax (%s); write plain `key:` lines so "
+              "the generator can check the file for duplicated keys" % explicit[0].strip(), file=sys.stderr)
+        sys.exit(2)
     kept, block, inside, seen = [], [], False, False
     for line in base.split("\n"):
         if re.match(r"^(?:---|\.\.\.)(?:\s+#.*)?\s*$", line):   # document markers, with or without a trailing comment
