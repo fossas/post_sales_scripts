@@ -2,9 +2,11 @@
 
 # verify-scan.sh — API readback for one FOSSA revision (receipts, not screenshots).
 #
-#   bash verify-scan.sh <org-id> <project-id> [revision]
+#   bash verify-scan.sh <org-id> <project-id> [revision] [branch]
 #
-# revision defaults to .fossa-out/LAST_REV in the current directory (written by fossa-scan.sh on success).
+# revision defaults to .fossa-out/LAST_REV in the current directory (written by fossa-scan.sh on success);
+# branch (for the UI link only) defaults to main. Your organization id is the number in the FOSSA UI's
+# project URLs (custom+<org-id>/<project-id>) and in GET /api/cli/organization.
 # Needs FOSSA_API_KEY. Read-only: every call is a GET.
 
 set -o errexit
@@ -12,12 +14,13 @@ set -o nounset
 set -o pipefail
 
 if [ $# -lt 2 ]; then
-  echo "usage: bash verify-scan.sh <org-id> <project-id> [revision]" >&2
+  echo "usage: bash verify-scan.sh <org-id> <project-id> [revision] [branch]" >&2
   exit 1
 fi
 ORG="$1"
 PROJECT="$2"
 REV="${3:-$(cat .fossa-out/LAST_REV 2>/dev/null || true)}"
+BRANCH="${4:-main}"
 : "${REV:?no revision given and no .fossa-out/LAST_REV in $PWD}"
 : "${FOSSA_API_KEY:?set FOSSA_API_KEY}"
 ENDPOINT="${FOSSA_ENDPOINT:-https://app.fossa.com}"
@@ -27,10 +30,10 @@ LOC="custom+${ORG}/${PROJECT}\$${REV}"
 ENC="$(enc "$LOC")"
 PENC="$(enc "custom+${ORG}/${PROJECT}")"
 H="Authorization: Bearer ${FOSSA_API_KEY}"
-api() { curl -g -s -H "$H" "${ENDPOINT}$1"; }
+api() { curl -g -s -f -H "$H" "${ENDPOINT}$1" || { echo "API call failed (HTTP error): $1" >&2; exit 1; }; }
 
 echo "revision locator: $LOC"
-echo "UI: ${ENDPOINT}/projects/${PENC}/refs/branch/main/${REV}"
+echo "UI: ${ENDPOINT}/projects/${PENC}/refs/branch/${BRANCH}/${REV}"
 echo
 
 echo "== build status (GET /api/cli/{REV}/latest_build)"

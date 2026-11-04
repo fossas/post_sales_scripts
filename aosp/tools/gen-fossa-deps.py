@@ -12,7 +12,7 @@ itself can prove, and takes the rest from a small hand-maintained base file:
   vendored-dependencies            <- fossa-deps.base.yml (judgment: which directories to archive-scan)
   custom-dependencies              <- fossa-deps.base.yml (judgment: proprietary code and its license)
 
-Python 3.8+, stdlib only, no network. Also writes the generator's CycloneDX + coverage report into
+Python 3.10+ (the METADATA generator uses 3.10 syntax), stdlib only, no network. Also writes the generator's CycloneDX + coverage report into
 .fossa-out/ so the optional SBOM lane (`fossa sbom analyze`) uses the same walk.
 
   python3 tools/gen-fossa-deps.py [--root DIR] [--check]
@@ -45,32 +45,53 @@ referenced-dependencies:
 """
 
 
+def _pom_properties(z):
+    """(name, parsed key/values) for every META-INF/maven/**/pom.properties in an open zip."""
+    for n in sorted(z.namelist()):
+        if n.startswith("META-INF/maven/") and n.endswith("pom.properties"):
+            kv = {}
+            for line in z.read(n).decode("utf-8", "replace").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    kv[k.strip()] = v.strip()
+            yield n, kv
+
+
 def maven_from_jars(root):
-    """Yield (path, group, artifact, version) for every jar/aar under prebuilts/ with pom.properties."""
-    out, skipped = [], []
+    """Return (unique coordinates, properties files read, skipped archives) for prebuilts/**/*.jar|*.aar.
+
+    A jar carries its coordinates at META-INF/maven/<group>/<artifact>/pom.properties (shaded jars carry
+    several; every one is read). An AAR is a zip whose Java code sits in a nested classes.jar, so that
+    inner jar is opened too; most AARs published by Gradle carry no pom.properties at all, in which case
+    the archive is reported, not guessed.
+    """
+    import io
+    out, skipped, props_read = [], [], 0
     base = os.path.join(root, "prebuilts")
     for dirpath, _dirs, files in os.walk(base):
         for f in sorted(files):
             if not f.endswith((".jar", ".aar")):
                 continue
             p = os.path.join(dirpath, f)
+            rel = os.path.relpath(p, root)
+            found = False
             try:
                 with zipfile.ZipFile(p) as z:
-                    props = [n for n in z.namelist() if n.startswith("META-INF/maven/") and n.endswith("pom.properties")]
-                    if not props:
-                        skipped.append(os.path.relpath(p, root))
-                        continue
-                    for n in sorted(props):
-                        kv = {}
-                        for line in z.read(n).decode("utf-8", "replace").splitlines():
-                            line = line.strip()
-                            if line and not line.startswith("#") and "=" in line:
-                                k, v = line.split("=", 1)
-                                kv[k.strip()] = v.strip()
-                        if {"groupId", "artifactId", "version"} <= kv.keys():
-                            out.append((os.path.relpath(p, root), kv["groupId"], kv["artifactId"], kv["version"]))
+                    zips = [z]
+                    if f.endswith(".aar") and "classes.jar" in z.namelist():
+                        zips.append(zipfile.ZipFile(io.BytesIO(z.read("classes.jar"))))
+                    for zz in zips:
+                        for _n, kv in _pom_properties(zz):
+                            props_read += 1
+                            if {"groupId", "artifactId", "version"} <= kv.keys():
+                                out.append((rel, kv["groupId"], kv["artifactId"], kv["version"]))
+                                found = True
             except zipfile.BadZipFile:
-                skipped.append(os.path.relpath(p, root) + " (not a zip)")
+                skipped.append(rel + " (not a zip)")
+                continue
+            if not found:
+                skipped.append(rel)
     # one entry per coordinate, deterministic order
     seen, uniq = set(), []
     for rel, g, a, v in sorted(out):
@@ -79,7 +100,7 @@ def maven_from_jars(root):
             continue
         seen.add(key)
         uniq.append((rel, g, a, v))
-    return uniq, skipped
+    return uniq, props_read, skipped
 
 
 def git_from_metadata(root, out_dir):
@@ -90,6 +111,8 @@ def git_from_metadata(root, out_dir):
     cmd = [sys.executable, "-I", gen, "--root", root, "--out-dir", out_dir, "--project-name", os.path.basename(root)]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
+        if "no METADATA files found" in res.stderr:
+            return [], "parsed=0 (no METADATA files found under the root)"   # the lane floor below decides
         sys.exit("aosp_metadata_scan.py failed:\n" + res.stderr)
     summary = next((l for l in res.stdout.splitlines() if l.startswith("parsed=")), "").strip()
     text = open(os.path.join(out_dir, "fossa-deps.yml")).read()
@@ -116,7 +139,7 @@ def main():
     out_dir = os.path.join(root, ".fossa-out")
     os.makedirs(out_dir, exist_ok=True)
 
-    maven, skipped = maven_from_jars(root)
+    maven, props_read, skipped = maven_from_jars(root)
     git_lines, summary = git_from_metadata(root, out_dir)
     base_path = os.path.join(root, "fossa-deps.base.yml")
     base = open(base_path).read() if os.path.exists(base_path) else ""
@@ -150,7 +173,7 @@ def main():
     target = os.path.join(root, "fossa-deps.yml")
     current = open(target).read() if os.path.exists(target) else None
     changed = current != content
-    print(f"gen-fossa-deps: {git_n} git from METADATA ({summary}); {len(maven)} maven from {len(maven)} jar pom.properties; "
+    print(f"gen-fossa-deps: {git_n} git from METADATA ({summary}); {len(maven)} maven coordinates from {props_read} pom.properties; "
           f"base sections: {'yes' if base.strip() else 'none'}; {'CHANGED' if changed else 'unchanged'}")
     for s in skipped:
         print(f"  note: {s}: no pom.properties, not declared automatically (declare it in fossa-deps.base.yml if it is third-party)")

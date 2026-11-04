@@ -54,35 +54,33 @@ referenced-dependencies:
     version: "v1.5.7"
 
 # --- hand-maintained sections (fossa-deps.base.yml) ---
-# fossa-deps.base.yml — the hand-maintained part of fossa-deps.yml.
+# fossa-deps.base.yml — the hand-maintained part of fossa-deps.yml (judgment calls the tree cannot prove).
+# tools/gen-fossa-deps.py appends this verbatim after the generated referenced-dependencies.
 #
-# tools/gen-fossa-deps.py writes fossa-deps.yml on every scan: the referenced-dependencies (git entries
-# from external/*/METADATA, maven entries from prebuilt jars' pom.properties) are generated, and this file
-# is appended verbatim for the two sections that are judgment calls the tree cannot prove.
-# Delete the examples below and declare your own; keep at least the two section headers.
-
 vendored-dependencies:
-  # A third-party directory whose upstream is not on github (or not a git repository at all): FOSSA
-  # archives the directory, uploads it and license-scans every file. Name + version are cached
-  # organization-wide (first scan wins); bump the version when the contents change.
-  - name: external-freetype
+  # upstream is git.sv.nongnu.org (not github) -> license via archive scan here, CVEs would come via its CPE in the SBOM lane (returned nothing on 2026-11-04)
+  - name: aosp-external-freetype
     path: external/freetype
     version: "2.13.2"
     metadata:
-      description: "FreeType as vendored in external/freetype (pin from its METADATA file)"
+      description: "FreeType 2.13.2 as vendored in vendor/acme/external/freetype (AOSP METADATA pin)"
       homepage: "https://freetype.org"
-  # The prebuilt jar directory itself: FOSSA unarchives each jar and license-scans what is inside,
-  # which catches license texts the registry entry does not carry.
-  - name: prebuilt-libs
+  # sqlite is not a git upstream (fossil); public-domain amalgamation -> archive license scan
+  - name: aosp-external-sqlite
+    path: external/sqlite
+    version: "3.42.0"
+    metadata:
+      description: "SQLite 3.42.0 amalgamation as vendored in vendor/acme/external/sqlite"
+      homepage: "https://sqlite.org"
+  # the prebuilt jar directory itself: FOSSA unarchives each jar and license-scans what is inside
+  - name: acme-prebuilts-libs
     path: prebuilts/acme/libs
-    version: "android-15.0.0_r1"
+    version: "android-15.0.0_r1-acme"
 
 custom-dependencies:
-  # Proprietary or partner code: inventory plus the declared license, no vulnerability data.
-  # Use a license identifier FOSSA knows (an SPDX id, or `proprietary-license`), otherwise the row
-  # shows as an unlicensed dependency until you conclude its license in the UI.
-  - name: vehicle-platform-sdk
+  - name: acme-vehicle-platform-sdk
     version: "3.2.0"
-    license: "proprietary-license"
+    license: "proprietary-license"   # resolves in FOSSA (observed 2026-11-04); LicenseRef-* and "Proprietary" read back empty
     metadata:
-      description: "Vehicle platform SDK (prebuilts/partner-sdk); no open-source code inside"
+      description: "ACME Vehicle Platform SDK (proprietary, prebuilts/acme/partner-sdk). Inventory only — no OSS inside."
+      homepage: "https://acme-automotive.example"
