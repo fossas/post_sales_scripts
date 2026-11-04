@@ -221,10 +221,11 @@ HEX_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$", re.I)
 
 
 def suspicious_version(tag: str) -> str | None:
-    """Pin shapes observed not to resolve as git tags or not to match CVE data
-    (the >9999 rule: FOSSA's git vulnerability matching does not treat a numeric segment
-    above 9999 as a version, so such pins never match CVE ranges; a date-style pin like
-    20240116 therefore reports no vulnerabilities however many its upstream has; the bare-number
+    """Pin shapes observed not to resolve as git tags or not to match CVE data through the
+    git locator (the >9999 rule: FOSSA's git vulnerability matching does not treat a numeric
+    segment above 9999 as a version, so such pins never match CVE ranges by git locator; a
+    date-style pin like 20240116 therefore reports no vulnerabilities through that locator however
+    many its upstream has, while a CPE on the same component still matches in the SBOM lane; the bare-number
     rule is a tag-shape heuristic): a bare number with no
     separators is usually not a real tag (ICU pins `76`; the real tag is
     `release-76-1`), and any numeric segment > 9999 (date-style tags like
@@ -238,7 +239,7 @@ def suspicious_version(tag: str) -> str | None:
     if HEX_SHA_RE.match(tag) and not tag.isdigit():
         return None
     if any(int(seg) > 9999 for seg in re.findall(r"\d+", tag)):
-        return "date-style pin: FOSSA's git vulnerability matching does not treat a numeric segment above 9999 as a version, so this pin never matches CVE data"
+        return "date-style pin: FOSSA's git vulnerability matching does not treat a numeric segment above 9999 as a version, so this pin matches no CVE data through its git locator"
     if re.fullmatch(r"\d+", tag):
         return "bare number is unlikely to be a real git tag"
     return None

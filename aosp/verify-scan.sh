@@ -34,8 +34,17 @@ H="Authorization: Bearer ${FOSSA_API_KEY}"
 api() { local body; body="$(curl -g -s -f -H "$H" "${ENDPOINT}$1")" || { echo "API call failed (HTTP error): $1" >&2; exit 1; }; printf '%s' "$body"; }
 # every call below is captured first so that an HTTP failure stops the script before anything tries to parse an empty body.
 # The two snippet endpoints answer HTTP 400 ("Snippet analysis does not exist for user revision") for a revision scanned
-# without --snippet-scan, which is expected on organizations without that entitlement; they use the tolerant variant.
-api_opt() { local body; body="$(curl -g -s -H "$H" "${ENDPOINT}$1")" || true; printf '%s' "$body"; }
+# without --snippet-scan, which is expected on organizations without that entitlement; they use the variant that
+# accepts exactly that 400 and still fails on any other HTTP status or a transport error.
+api_opt() {
+  local out code body
+  out="$(curl -g -s -w '\n%{http_code}' -H "$H" "${ENDPOINT}$1")" || { echo "API call failed (transport): $1" >&2; exit 1; }
+  code="${out##*$'\n'}"; body="${out%$'\n'*}"
+  case "$code" in
+    200|400) printf '%s' "$body" ;;     # 400 = no snippet analysis on this revision; the parsers print its message
+    *) echo "API call failed (HTTP $code): $1" >&2; exit 1 ;;
+  esac
+}
 
 echo "revision locator: $LOC"
 echo "UI: ${ENDPOINT}/projects/${PENC}/refs/branch/${BRANCH}/${REV}"

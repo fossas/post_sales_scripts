@@ -114,7 +114,8 @@ and the snippet scan are expensive the first time they see a tree and cheap afte
    proprietary code is and under which license). The generator appends it verbatim, so any other
    `fossa-deps.yml` section you need, such as `fork-aliases`, can live there as well. One exception: a
    `referenced-dependencies:` block in the base file (upstreams you declare by hand, for a tree with no
-   `METADATA` files) is lifted into the generated section under its own marker instead of being appended,
+   `METADATA` files; block form, one `- type:` item per entry, an inline `[...]` list is refused with exit 2)
+   is lifted into the generated section under its own marker instead of being appended,
    because fossa-cli keeps only the last of two identical top-level keys (measured on 3.20.4: with the block
    appended, the generated maven and git entries vanished from the upload). Hand-declared entries are not
    walk output, so the drift floor below does not count them.

@@ -55,23 +55,35 @@ def split_base_references(base):
 
     Appending it verbatim would put a second top-level `referenced-dependencies:` key in fossa-deps.yml, and
     fossa-cli keeps only the last one (measured on 3.20.4: the generated maven entry vanished from the upload and
-    only the base file's git entry remained). Returns (base text without the block, the block's items re-indented
-    for the generated section)."""
+    only the base file's git entry remained). Block form only (one `- type: ...` item per entry; a trailing comment
+    on the key line is fine; an inline `[]` is an empty block): a non-empty inline `[...]` list is refused.
+    Returns (base text without the block, the block's items re-indented for the generated section)."""
     kept, block, inside, seen = [], [], False, False
     for line in base.split("\n"):
-        if re.match(r"^referenced-dependencies:\s*(\[\s*\]\s*)?$", line):
-            inside = seen = True   # an inline `[]` is an empty block: the key line is dropped either way
+        if re.match(r"^referenced-dependencies:\s*(\[\s*\])?\s*(#.*)?$", line):
+            inside = seen = True   # the key line is dropped either way
             continue
-        if inside and re.match(r"^[A-Za-z]", line):
-            inside = False
+        if inside and line.startswith("#"):
+            kept.append(line)      # a column-0 comment belongs to no block: it stays with the base text, in place
+            continue
+        if inside and re.match(r"^[^\s-]", line):
+            inside = False         # any other column-0 line (a key, quoted or not) ends the block; indent-0 items stay
         (block if inside else kept).append(line)
+    inline = [l for l in kept if re.match(r"^referenced-dependencies:", l)]
+    if inline:   # a non-empty inline flow list is not lifted: refuse rather than emit a second top-level key
+        print("gen-fossa-deps: ERROR fossa-deps.base.yml declares referenced-dependencies as an inline list (%s); "
+              "move these entries into a block-form `referenced-dependencies:` list, one `- type: ...` item per entry; "
+              "an inline list cannot be merged and would leave fossa-cli only the last of two keys" % inline[0].strip(),
+              file=sys.stderr)
+        sys.exit(2)
     if not seen:
         return base, []
     items = [l for l in block if l.strip()]
     if not items:
         return "\n".join(kept), []
-    indent = min(len(l) - len(l.lstrip()) for l in items)
-    return "\n".join(kept), ["  " + l[indent:] for l in items]
+    item_lines = [l for l in items if l.lstrip().startswith("- ")] or items
+    indent = min(len(l) - len(l.lstrip()) for l in item_lines)      # the items' own indent, never a comment's
+    return "\n".join(kept), ["  " + (l[indent:] if len(l) - len(l.lstrip()) >= indent else l.lstrip()) for l in items]
 
 
 
@@ -203,6 +215,11 @@ def main():
         parts.append("\n" + HAND_SECTIONS_MARKER + "\n")
         parts.append(base.rstrip("\n") + "\n")
     content = "".join(parts)
+    keys = len(re.findall(r"^referenced-dependencies:", content, re.M))
+    if keys != 1:   # post-condition: whatever shape the base file took, the output carries exactly one such key
+        print(f"gen-fossa-deps: ERROR the generated file would carry {keys} top-level referenced-dependencies keys "
+              "(fossa-cli keeps only the last); declare references in fossa-deps.base.yml as one block-form list", file=sys.stderr)
+        sys.exit(2)
     target = os.path.join(root, "fossa-deps.yml")
     current = open(target).read() if os.path.exists(target) else None
 
