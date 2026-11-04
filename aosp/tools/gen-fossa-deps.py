@@ -239,7 +239,7 @@ def main():
     if current is not None:   # the committed file is the baseline: a lane it carried cannot silently come back empty
         # count the previous file's WALK-generated region only: hand-declared references and the base sections are
         # not walk output, and counting them made the floor fire on every run after the first for a tree whose base
-        # file declares upstreams by hand (iris#144 ic-11)
+        # file declares upstreams by hand
         region = current[current.find("referenced-dependencies:"):] if "referenced-dependencies:" in current else ""
         for marker in (HAND_REFS_MARKER, HAND_SECTIONS_MARKER):
             cut = region.find(marker)
