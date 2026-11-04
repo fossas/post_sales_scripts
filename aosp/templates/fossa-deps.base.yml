@@ -1,0 +1,32 @@
+# fossa-deps.base.yml — the hand-maintained part of fossa-deps.yml.
+#
+# tools/gen-fossa-deps.py writes fossa-deps.yml on every scan: the referenced-dependencies (git entries
+# from external/*/METADATA, maven entries from prebuilt jars' pom.properties) are generated, and this file
+# is appended verbatim for the two sections that are judgment calls the tree cannot prove.
+# Delete the examples below and declare your own; keep at least the two section headers.
+
+vendored-dependencies:
+  # A third-party directory whose upstream is not on github (or not a git repository at all): FOSSA
+  # archives the directory, uploads it and license-scans every file. Name + version are cached
+  # organization-wide (first scan wins); bump the version when the contents change.
+  - name: external-freetype
+    path: external/freetype
+    version: "2.13.2"
+    metadata:
+      description: "FreeType as vendored in external/freetype (pin from its METADATA file)"
+      homepage: "https://freetype.org"
+  # The prebuilt jar directory itself: FOSSA unarchives each jar and license-scans what is inside,
+  # which catches license texts the registry entry does not carry.
+  - name: prebuilt-libs
+    path: prebuilts/libs
+    version: "android-15.0.0_r1"
+
+custom-dependencies:
+  # Proprietary or partner code: inventory plus the declared license, no vulnerability data.
+  # Use a license identifier FOSSA knows (an SPDX id, or `proprietary-license`), otherwise the row
+  # shows as an unlicensed dependency until you conclude its license in the UI.
+  - name: vehicle-platform-sdk
+    version: "3.2.0"
+    license: "proprietary-license"
+    metadata:
+      description: "Vehicle platform SDK (prebuilts/partner-sdk); no open-source code inside"

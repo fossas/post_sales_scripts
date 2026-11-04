@@ -1,0 +1,133 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:2a992af5-c19e-4f71-9bbb-6018d297a63f",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-04T15:17:45Z",
+    "tools": [
+      {
+        "vendor": "FOSSA FDE",
+        "name": "aosp_metadata_scan",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "bom-ref": "aosp-vendor-tree",
+      "type": "operating-system",
+      "name": "vendor-tree",
+      "version": "2026-11-04"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg-external-sqlite",
+      "type": "library",
+      "name": "SQLite",
+      "version": "3.42.0",
+      "cpe": "cpe:2.3:a:sqlite:sqlite:3.42.0:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://www.sqlite.org"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-curl",
+      "type": "library",
+      "name": "curl",
+      "version": "curl-8_12_1",
+      "purl": "pkg:github/curl/curl@curl-8_12_1",
+      "cpe": "cpe:2.3:a:haxx:curl:8.12.1:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/curl/curl/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-expat",
+      "type": "library",
+      "name": "expat",
+      "version": "R_2_5_0",
+      "purl": "pkg:github/libexpat/libexpat@R_2_5_0",
+      "cpe": "cpe:2.3:a:libexpat_project:libexpat:2.5.0:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/libexpat/libexpat/"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-freetype",
+      "type": "library",
+      "name": "freetype",
+      "version": "2.13.2",
+      "cpe": "cpe:2.3:a:freetype:freetype:2.13.2:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "git://git.sv.nongnu.org/freetype/freetype2.git"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-libpng",
+      "type": "library",
+      "name": "libpng",
+      "version": "v1.6.44",
+      "purl": "pkg:github/glennrp/libpng@v1.6.44",
+      "cpe": "cpe:2.3:a:libpng:libpng:1.6.44:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/glennrp/libpng.git"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-zlib",
+      "type": "library",
+      "name": "zlib",
+      "version": "v1.2.13",
+      "purl": "pkg:github/madler/zlib@v1.2.13",
+      "cpe": "cpe:2.3:a:zlib:zlib:1.2.13:*:*:*:*:*:*:*",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/madler/zlib"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg-external-zstd",
+      "type": "library",
+      "name": "zstd",
+      "version": "v1.5.7",
+      "purl": "pkg:github/facebook/zstd@v1.5.7",
+      "externalReferences": [
+        {
+          "type": "vcs",
+          "url": "https://github.com/facebook/zstd"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "aosp-vendor-tree",
+      "dependsOn": [
+        "pkg-external-sqlite",
+        "pkg-external-curl",
+        "pkg-external-expat",
+        "pkg-external-freetype",
+        "pkg-external-libpng",
+        "pkg-external-zlib",
+        "pkg-external-zstd"
+      ]
+    }
+  ]
+}
