@@ -49,7 +49,7 @@ import sys
 import uuid
 from pathlib import Path
 
-SKIP_DIRS = {".git", ".repo", "out", ".ccache"}
+SKIP_DIRS = {".git", ".repo", "out", ".ccache", "testdata", "tests"}   # tests/testdata holds REAL METADATA fixtures
 
 # --------------------------------------------------------------------------
 # protobuf-text-lite parsing (only the fields we need; quote-aware)

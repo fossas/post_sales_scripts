@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:f3583060-1192-4a9a-8f99-440f0c8230fa",
+  "serialNumber": "urn:uuid:27cc7f16-7be5-4f00-8396-ac1e295dd9da",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-04T15:44:13Z",
+    "timestamp": "2026-11-04T16:01:54Z",
     "tools": [
       {
         "vendor": "FOSSA",
@@ -13,9 +13,9 @@
       }
     ],
     "component": {
-      "bom-ref": "aosp-aosp-demo",
+      "bom-ref": "aosp-vendor-tree",
       "type": "operating-system",
-      "name": "aosp-demo",
+      "name": "vendor-tree",
       "version": "2026-11-04"
     }
   },
@@ -118,7 +118,7 @@
   ],
   "dependencies": [
     {
-      "ref": "aosp-aosp-demo",
+      "ref": "aosp-vendor-tree",
       "dependsOn": [
         "pkg-external-sqlite",
         "pkg-external-curl",

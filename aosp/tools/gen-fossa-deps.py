@@ -16,7 +16,7 @@ Python 3.10+ (the METADATA generator uses 3.10 syntax), stdlib only, no network.
 .fossa-out/ so the optional SBOM lane (`fossa sbom analyze`) uses the same walk.
 
   python3 tools/gen-fossa-deps.py [--root DIR] [--check]
-    --check   exit 1 if fossa-deps.yml would change (for CI: the committed file must match the tree)
+    --check   exit 2 if fossa-deps.yml would change (for CI: the committed file must match the tree)
 """
 import argparse
 import os
@@ -75,7 +75,7 @@ def maven_from_jars(root):
                 continue
             p = os.path.join(dirpath, f)
             rel = os.path.relpath(p, root)
-            found = False
+            found, seen_props = False, 0
             try:
                 with zipfile.ZipFile(p) as z:
                     zips = [z]
@@ -84,14 +84,15 @@ def maven_from_jars(root):
                     for zz in zips:
                         for _n, kv in _pom_properties(zz):
                             props_read += 1
+                            seen_props += 1
                             if {"groupId", "artifactId", "version"} <= kv.keys():
                                 out.append((rel, kv["groupId"], kv["artifactId"], kv["version"]))
                                 found = True
             except zipfile.BadZipFile:
-                skipped.append(rel + " (not a zip)")
+                skipped.append(rel + ": not a zip archive")
                 continue
             if not found:
-                skipped.append(rel)
+                skipped.append(rel + (": no usable pom.properties (missing groupId/artifactId/version)" if seen_props else ": no pom.properties"))
     # one entry per coordinate, deterministic order
     seen, uniq = set(), []
     for rel, g, a, v in sorted(out):
@@ -176,9 +177,9 @@ def main():
     print(f"gen-fossa-deps: {git_n} git from METADATA ({summary}); {len(maven)} maven coordinates from {props_read} pom.properties; "
           f"base sections: {'yes' if base.strip() else 'none'}; {'CHANGED' if changed else 'unchanged'}")
     for s in skipped:
-        print(f"  note: {s}: no pom.properties, not declared automatically (declare it in fossa-deps.base.yml if it is third-party)")
+        print(f"  note: {s}, not declared automatically (declare it in fossa-deps.base.yml if it is third-party)")
     if args.check:
-        sys.exit(1 if changed else 0)
+        sys.exit(2 if changed else 0)   # 2 = regenerate and commit (same class as an empty lane); 1 = the generator crashed
     if changed or current is None:
         open(target, "w").write(content)
 

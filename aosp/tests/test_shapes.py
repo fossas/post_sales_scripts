@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Scenario table for aosp_metadata_scan — run directly: python3 test_shapes.py
+"""Scenario table for aosp_metadata_scan — run directly from this directory: python3 test_shapes.py
+
+Also runs the generator over testdata/aosp-root (19 real AOSP METADATA files) and asserts the tier split.
+Keep this directory OUT of any tree you scan: the fixtures are real METADATA files and would be read as components.
 
 Each case here is a reviewer-caught or corpus-observed shape; if one of these
 asserts fires, a silent-coverage bug came back."""
+import os, subprocess, sys, tempfile
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tools"))
 import aosp_metadata_scan as m
 
-# --- suspicious_version: the guard-order table (r2-01) ---------------------
+# --- suspicious_version: the guard-order table (an all-digit date must not pass the SHA test) ---------------------
 CASES = {
-    "76": "bare",            # ICU's real pin; round-1 critical
+    "76": "bare",            # ICU's real pin; the real tag is release-76-1
     "20240116": "date",      # 8-digit date IS valid hex — must not pass as SHA
     "1234567": "date",       # all-digit 7-char; single segment > 9999
     "v20240116": "date",
@@ -29,7 +34,7 @@ for tag, expect in CASES.items():
     elif expect == "date":
         assert got and "date-style" in got, f"{tag!r}: expected date-style, got {got!r}"
 
-# --- _find_blocks: both protobuf text block forms (ic-01/ic-02) ------------
+# --- _find_blocks: both protobuf text block forms (brace and colon forms, incl. sqlite's) ------------
 for form in ("security {", "security: {", "security  :  {"):
     text = form + ' tag: "NVD-CPE2.3:cpe:/a:x:y:1" }'
     assert m._find_blocks(text, "security"), f"block form not parsed: {form!r}"
@@ -42,11 +47,11 @@ assert parsed["cpe"] == "cpe:/a:sqlite:sqlite", parsed
 assert parsed["version"] == "3.42.0", parsed
 assert not parsed.get("first_party"), "colon-form third_party misread as first-party"
 
-# --- CPE version refresh (claims-sourced-02 adjacency) ----------------------
+# --- CPE version refresh (stale AOSP security tags refreshed from the pinned tag) ----------------------
 assert m.cpe23("cpe:/a:haxx:curl:7.87.0", m.numeric_version("curl-8_12_1")) == \
     "cpe:2.3:a:haxx:curl:8.12.1:*:*:*:*:*:*:*"
 
-# --- pilot cohort: both lanes slice the same components (r2-03) -------------
+# --- pilot cohort: both lanes slice the same components -------------
 entries = m.classify([
     {"name": n, "git_url": f"https://github.com/o/{n}", "version": "v1.0.0",
      "cpe": None, "homepage": None, "license_type": None, "path": f"external/{n}/METADATA"}
@@ -63,4 +68,14 @@ assert sorted(c["name"] for c in bom["components"]) == ["a", "b"], bom["componen
 deps_yaml = m.emit_fossa_deps(entries, 2)
 assert deps_yaml.count("type: git") == 2 and "github.com/o/a" in deps_yaml and "github.com/o/b" in deps_yaml
 
-print("all shape scenarios pass")
+# --- the real-file corpus: the generator over testdata/aosp-root must reproduce the recorded tier split ---
+_here = os.path.dirname(os.path.abspath(__file__))
+with tempfile.TemporaryDirectory() as _out:
+    _res = subprocess.run([sys.executable, os.path.join(_here, "..", "tools", "aosp_metadata_scan.py"),
+                           "--root", os.path.join(_here, "testdata", "aosp-root"), "--out-dir", _out],
+                          capture_output=True, text=True)
+    assert _res.returncode == 0, _res.stderr
+    _line = next(l for l in _res.stdout.splitlines() if l.startswith("parsed="))
+    assert _line.startswith("parsed=19 tier1=8 tier2=9 tier3=2"), _line
+
+print("all shape scenarios pass; corpus: " + _line)

@@ -38,7 +38,7 @@ saying _which_ of the above actually ships.
 | `fossa-scan.sh`                            | The scan as a CI job runs it: regenerate `fossa-deps.yml`, `fossa analyze --x-vendetta --snippet-scan`, fail if the fossa-deps unit was dropped, then `fossa test` (its exit code is the script's unless `FOSSA_TEST_SOFT_FAIL=1`). `--dry` analyzes without uploading.                                                  |
 | `tools/gen-fossa-deps.py`                  | Regenerates `fossa-deps.yml` from the tree: git references from `METADATA`, Maven coordinates from each prebuilt jar's `pom.properties`, plus the hand-maintained sections from `fossa-deps.base.yml`. Exits 2 instead of writing a file with a missing lane (`--allow-empty-lanes` overrides, `--check` for CI).        |
 | `tools/aosp_metadata_scan.py`              | Walks the tree for `METADATA` files and emits the git references, a CycloneDX 1.5 SBOM (all tiers, with the CPEs AOSP records) and a coverage report that says which components could not be promoted and why. `--pilot N` emits only the first N components into both outputs, for a first run on a new FOSSA instance. |
-| `tools/test_shapes.py` + `tools/testdata/` | The generator's scenario suite (pin-shape rules, both METADATA schemas, real AOSP METADATA files). Run `python3 test_shapes.py` from `tools/` after editing the generator.                                                                                                                                               |
+| `tests/test_shapes.py` + `tests/testdata/` | The generator's suite: the pin-shape scenario table, both METADATA schemas, and a run over 19 real AOSP METADATA files asserting the recorded tier split (`parsed=19 tier1=8 tier2=9 tier3=2`). Run `python3 test_shapes.py` from `tests/`. Keep `tests/` out of any tree you scan: the fixtures are real METADATA files, and the generator skips `tests/` and `testdata/` directories as a safety net. |
 | `verify-scan.sh`                           | API readback of a revision: build status, issue counts, dependency rows by lane, unresolved rows, licensing active/ignored counts, snippet records. Receipts, not screenshots.                                                                                                                                           |
 | `templates/fossa.yml`                      | Starting `.fossa.yml`: project identity, discovery scoped to the app, Gradle scoped to the release classpath.                                                                                                                                                                                                            |
 | `templates/fossa-deps.base.yml`            | Starting `fossa-deps.base.yml`: the vendored and custom sections a team maintains by hand.                                                                                                                                                                                                                               |
@@ -117,7 +117,7 @@ and the snippet scan are expensive the first time they see a tree and cheap afte
 Exit codes: 0 when the file was written or already matched; 2 when `prebuilts/` exists but no archive
 yielded a coordinate, or `external/` exists but no METADATA produced a tier-1 git entry (the reason is
 printed, the previous `fossa-deps.yml` is left in place, `--allow-empty-lanes` overrides); 1 when the
-METADATA generator itself crashed. `--check` exits 2 when the committed file no longer matches the tree,
+METADATA generator itself crashed. `--check` exits 2 when the committed file no longer matches the tree (same class as an empty lane: regenerate and commit),
 which is the CI gate for "someone edited the generated file by hand".
 
 Only names, versions and URLs are produced; the generator makes no network calls.
@@ -152,8 +152,8 @@ results with two things in mind:
 - _Treat a detected version as a lead and the METADATA pin as the fact._ A library detected without a
   version resolves to the upstream's current head, so the vulnerabilities reported are those of today's
   upstream rather than of the code in your tree, inaccurate in both directions. On the test tree the four
-  version-less detections still carried 23 vulnerability issues, attributed to head commits dated weeks
-  before the scan. Pin it (a `METADATA` file, or a git entry in the base file) to get version-true data.
+  version-less detections still carried 23 vulnerability issues, attributed to whatever each upstream's head was
+  on the scan date (commits from two days to seven weeks old). Pin it (a `METADATA` file, or a git entry in the base file) to get version-true data.
 
 **Snippet scan.** Fingerprints first-party source files, and for matched files uploads their content
 (retained for 30 days) so the side-by-side view works. Match records populate after the build finishes
@@ -233,4 +233,4 @@ Receipts from the fictional test tree behind `examples/` (a five-module Gradle a
 projects with real AOSP METADATA files and real upstream sources, two copied-in C libraries without
 METADATA, four prebuilt jars, a proprietary SDK stub), read back with this script: 148 dependency rows
 (131 Maven, 13 git, 3 archive, 1 custom), 0 unresolved, 116 issues (99 vulnerability), licensing 5 active
-and 36 auto-ignored, 102 snippet records.
+and 36 auto-ignored, 102 snippet records. One note: that revision uploaded the custom dependency with a `LicenseRef-` value (read back empty); the `examples/` and the template carry the `proprietary-license` value that resolves, which postdates the receipt.
