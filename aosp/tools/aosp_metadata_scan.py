@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """aosp_metadata_scan.py — AOSP METADATA -> FOSSA manifests (no source egress).
 
-Published copy (fossas/post_sales_scripts, aosp/tools/). Run test_shapes.py next to this file after
-any change to the pin-shape rules.
+Published copy (fossas/post_sales_scripts, aosp/tools/). Run tests/test_shapes.py (from tests/: python3 test_shapes.py) after any change to
+the pin-shape rules.
 
 Walks an AOSP checkout for per-project METADATA files (protobuf text format,
 both the modern `identifier {}` and legacy `url {} + version` schemas), and
@@ -278,6 +278,9 @@ def emit_fossa_deps(entries: list[dict], pilot: int | None) -> str:
         lines.append("- type: git")
         lines.append(f"  name: github.com/{owner}/{repo}")
         lines.append(f"  version: {json.dumps(e['version'])}")
+    if skipped_paths:
+        lines += ["", "METADATA files NOT scanned because a path segment is on the skip-list (move them, or edit SKIP_DIRS, if they are real components):", ""]
+        lines += [f"- `{p}`" for p in sorted(skipped_paths)]
     lines.append("")
     return "\n".join(lines)
 
@@ -350,13 +353,14 @@ def emit_cyclonedx(entries: list[dict], project_name: str, project_version: str,
     return json.dumps(bom, indent=2) + "\n"
 
 
-def emit_coverage(entries: list[dict], root_display: str) -> str:
+def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[str] | None = None) -> str:
     counts = {t: sum(1 for e in entries if e["tier"] == t) for t in (0, 1, 2, 3)}
     lines = [
         "# AOSP METADATA coverage report",
         "",
         f"Scanned root: `{root_display}`",
         f"METADATA files parsed: {len(entries)}",
+        f"METADATA files skipped by the directory skip-list ({', '.join(sorted(SKIP_DIRS))}): {len(skipped_paths or [])}",
         "",
         "Tier-1 verification step (run after the upload): "
         "`GET /api/revisions/<url-encoded revision locator>/dependencies` and assert every "
@@ -413,10 +417,14 @@ def main() -> int:
         return 2
 
     entries = []
+    skipped_paths: list[str] = []
     for path in sorted(root.rglob("METADATA")):
         # Skip-list applies to directories INSIDE the checkout only, never to
         # ancestors of the root (a checkout under /build/out/... must scan).
-        if not path.is_file() or any(part in SKIP_DIRS for part in path.relative_to(root).parts):
+        if not path.is_file():
+            continue
+        if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
+            skipped_paths.append(str(path.relative_to(root)))
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
@@ -439,10 +447,10 @@ def main() -> int:
     )
     # display the root as the user gave it; the absolute path is a local
     # detail that doesn't belong in a shareable artifact
-    (args.out_dir / "coverage.md").write_text(emit_coverage(entries, str(args.root)))
+    (args.out_dir / "coverage.md").write_text(emit_coverage(entries, str(args.root), skipped_paths))
 
     t = lambda n: sum(1 for e in entries if e["tier"] == n)  # noqa: E731
-    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)}")
+    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)}")
     print(f"wrote: {args.out_dir / 'fossa-deps.yml'}, {args.out_dir / 'aosp-sbom.cdx.json'}, {args.out_dir / 'coverage.md'}")
     return 0
 
