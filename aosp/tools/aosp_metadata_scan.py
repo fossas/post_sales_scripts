@@ -194,12 +194,13 @@ def cpe23(cpe: str, version_override: str | None) -> str:
     """Normalize a 2.2-style `cpe:/a:vendor:product:version` (or an existing
     2.3 string) to CPE 2.3, optionally overriding the version with the
     currently pinned one (AOSP's NVD tags are often stale)."""
-    parts = None
+    tail = ["*"] * 7  # update, edition, language, sw_edition, target_sw, target_hw, other
     if cpe.startswith("cpe:2.3:"):
         parts = cpe.split(":")
-        # ['cpe','2.3',part,vendor,product,version,...]
+        # ['cpe','2.3',part,vendor,product,version,update,edition,language,sw_edition,target_sw,target_hw,other]
         head, vendor, product = parts[2], parts[3], parts[4]
         version = parts[5] if len(parts) > 5 else "*"
+        tail = (parts[6:13] + ["*"] * 7)[:7]
     elif cpe.startswith("cpe:/"):
         body = cpe[len("cpe:/"):]
         segs = body.split(":")
@@ -207,11 +208,13 @@ def cpe23(cpe: str, version_override: str | None) -> str:
         vendor = segs[1] if len(segs) > 1 else "*"
         product = segs[2] if len(segs) > 2 else "*"
         version = segs[3] if len(segs) > 3 else "*"
+        # 2.2 URI components after version: update, edition, language -> the first three 2.3 tail fields
+        tail = (segs[4:7] + ["*"] * 3)[:3] + ["*"] * 4
     else:
         return cpe
     if version_override:
         version = version_override
-    return f"cpe:2.3:{head}:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
+    return f"cpe:2.3:{head}:{vendor}:{product}:{version}:" + ":".join(tail)
 
 
 HEX_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$", re.I)
@@ -294,8 +297,21 @@ def pilot_cohort(entries: list[dict], pilot: int) -> list[dict]:
     return cohort
 
 
+def _ref_factory():
+    """bom-refs are derived from sanitized paths; `external/foo-bar` and `external/foo/bar` sanitize to
+    the same string, and CycloneDX requires refs to be unique within the BOM, so repeats get a suffix."""
+    used: dict[str, int] = {}
+
+    def unique(ref: str) -> str:
+        n = used.get(ref, 0)
+        used[ref] = n + 1
+        return ref if n == 0 else f"{ref}-{n + 1}"
+    return unique
+
+
 def emit_cyclonedx(entries: list[dict], project_name: str, project_version: str,
                    pilot: int | None = None) -> str:
+    unique_ref = _ref_factory()
     pool = pilot_cohort(entries, pilot) if pilot else entries
     third_party = sorted((x for x in pool if x["tier"] in (1, 2, 3)), key=lambda x: x["name"])
     seen_names: dict[str, str] = {}
@@ -309,7 +325,7 @@ def emit_cyclonedx(entries: list[dict], project_name: str, project_version: str,
         comp = {
             # bom-ref from the file path, unique by construction (METADATA
             # names repeat across nested third_party trees).
-            "bom-ref": "pkg-" + re.sub(r"[^A-Za-z0-9._-]", "-", e["path"].removesuffix("/METADATA")),
+            "bom-ref": unique_ref("pkg-" + re.sub(r"[^A-Za-z0-9._-]", "-", e["path"].removesuffix("/METADATA"))),
             "type": "library",
             "name": e["name"],
             "version": e["version"] or "unknown",
@@ -350,7 +366,8 @@ def emit_cyclonedx(entries: list[dict], project_name: str, project_version: str,
     return json.dumps(bom, indent=2) + "\n"
 
 
-def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[str] | None = None) -> str:
+def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[str] | None = None,
+                  unreadable_paths: list[str] | None = None) -> str:
     counts = {t: sum(1 for e in entries if e["tier"] == t) for t in (0, 1, 2, 3)}
     lines = [
         "# AOSP METADATA coverage report",
@@ -358,6 +375,7 @@ def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[st
         f"Scanned root: `{root_display}`",
         f"METADATA files parsed: {len(entries)}",
         f"METADATA files skipped by the directory skip-list ({', '.join(sorted(SKIP_DIRS))}): {len(skipped_paths or [])}",
+        f"METADATA files unreadable (not parsed, NOT covered): {len(unreadable_paths or [])}",
         "",
         "Tier-1 verification step (run after the upload): "
         "`GET /api/revisions/<url-encoded revision locator>/dependencies` and assert every "
@@ -389,6 +407,9 @@ def emit_coverage(entries: list[dict], root_display: str, skipped_paths: list[st
     if skipped_paths:
         lines += ["", "METADATA files NOT scanned because a path segment is on the skip-list (move them, or edit SKIP_DIRS, if they are real components):", ""]
         lines += [f"- `{p}`" for p in sorted(skipped_paths)]
+    if unreadable_paths:
+        lines += ["", "METADATA files that could not be read (fix permissions or encoding; these components are NOT covered):", ""]
+        lines += [f"- `{p}`" for p in sorted(unreadable_paths)]
     lines.append("")
     return "\n".join(lines)
 
@@ -418,6 +439,7 @@ def main() -> int:
 
     entries = []
     skipped_paths: list[str] = []
+    unreadable_paths: list[str] = []
     for path in sorted(root.rglob("METADATA")):
         # Skip-list applies to directories INSIDE the checkout only, never to
         # ancestors of the root (a checkout under /build/out/... must scan).
@@ -430,6 +452,7 @@ def main() -> int:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             print(f"warn: unreadable {path}: {exc}", file=sys.stderr)
+            unreadable_paths.append(f"{path.relative_to(root)} ({exc.__class__.__name__})")
             continue
         entry = parse_metadata(text, fallback_name=path.parent.name)
         entry["path"] = str(path.relative_to(root))
@@ -447,10 +470,10 @@ def main() -> int:
     )
     # display the root as the user gave it; the absolute path is a local
     # detail that doesn't belong in a shareable artifact
-    (args.out_dir / "coverage.md").write_text(emit_coverage(entries, str(args.root), skipped_paths))
+    (args.out_dir / "coverage.md").write_text(emit_coverage(entries, str(args.root), skipped_paths, unreadable_paths))
 
     t = lambda n: sum(1 for e in entries if e["tier"] == n)  # noqa: E731
-    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)}")
+    print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)} unreadable={len(unreadable_paths)}")
     print(f"wrote: {args.out_dir / 'fossa-deps.yml'}, {args.out_dir / 'aosp-sbom.cdx.json'}, {args.out_dir / 'coverage.md'}")
     return 0
 

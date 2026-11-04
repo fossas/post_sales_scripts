@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:27cc7f16-7be5-4f00-8396-ac1e295dd9da",
+  "serialNumber": "urn:uuid:4f128b98-bcd3-4bd7-94ea-a6e882fa104c",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-04T16:01:54Z",
+    "timestamp": "2026-11-04T16:32:20Z",
     "tools": [
       {
         "vendor": "FOSSA",

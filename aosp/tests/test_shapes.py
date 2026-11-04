@@ -78,4 +78,11 @@ with tempfile.TemporaryDirectory() as _out:
     _line = next(l for l in _res.stdout.splitlines() if l.startswith("parsed="))
     assert _line.startswith("parsed=19 tier1=8 tier2=9 tier3=2"), _line
 
+# --- cpe23 keeps trailing fields; bom-refs stay unique after path sanitization ---
+assert m.cpe23("cpe:2.3:a:vendor:product:1.0:beta:*:*:*:*:*:*", "2.0") == "cpe:2.3:a:vendor:product:2.0:beta:*:*:*:*:*:*", m.cpe23("cpe:2.3:a:vendor:product:1.0:beta:*:*:*:*:*:*", "2.0")
+assert m.cpe23("cpe:/a:vendor:product:1.0:sp1:pro:en", None) == "cpe:2.3:a:vendor:product:1.0:sp1:pro:en:*:*:*:*"
+assert m.cpe23("cpe:/a:vendor:product", None) == "cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"
+_u = m._ref_factory()
+assert [_u("pkg-external-foo-bar"), _u("pkg-external-foo-bar"), _u("pkg-x")] == ["pkg-external-foo-bar", "pkg-external-foo-bar-2", "pkg-x"]
+
 print("all shape scenarios pass; corpus: " + _line)

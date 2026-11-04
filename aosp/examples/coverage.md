@@ -3,6 +3,7 @@
 Scanned root: `vendor-tree`
 METADATA files parsed: 7
 METADATA files skipped by the directory skip-list (.ccache, .git, .repo, out, testdata, tests): 0
+METADATA files unreadable (not parsed, NOT covered): 0
 
 Tier-1 verification step (run after the upload): `GET /api/revisions/<url-encoded revision locator>/dependencies` and assert every row's `resolved` is true — the revision-level `dependency_count` does NOT tell you whether a pin actually resolved.
 

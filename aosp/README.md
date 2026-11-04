@@ -35,7 +35,7 @@ saying _which_ of the above actually ships.
 
 | File                                       | Purpose                                                                                                                                                                                                                                                                                                                  |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `fossa-scan.sh`                            | The scan as a CI job runs it: regenerate `fossa-deps.yml`, `fossa analyze --x-vendetta --snippet-scan`, fail if the fossa-deps unit was dropped, then `fossa test` (its exit code is the script's unless `FOSSA_TEST_SOFT_FAIL=1`). `--dry` analyzes without uploading.                                                  |
+| `fossa-scan.sh` | The scan as a CI job runs it: regenerate `fossa-deps.yml`, `fossa analyze --x-vendetta --snippet-scan`, fail if the fossa-deps unit was dropped or if a Gradle unit was expected (a Gradle build file exists; override with `FOSSA_EXPECT_GRADLE=0/1`) and did not succeed, then `fossa test` (its exit code is the script's unless `FOSSA_TEST_SOFT_FAIL=1`). `--dry` analyzes without uploading. |
 | `tools/gen-fossa-deps.py`                  | Regenerates `fossa-deps.yml` from the tree: git references from `METADATA`, Maven coordinates from each prebuilt jar's `pom.properties`, plus the hand-maintained sections from `fossa-deps.base.yml`. Exits 2 instead of writing a file with a missing lane (`--allow-empty-lanes` overrides, `--check` for CI).        |
 | `tools/aosp_metadata_scan.py`              | Walks the tree for `METADATA` files and emits the git references, a CycloneDX 1.5 SBOM (all tiers, with the CPEs AOSP records) and a coverage report that says which components could not be promoted and why. `--pilot N` emits only the first N components into both outputs, for a first run on a new FOSSA instance. |
 | `tests/test_shapes.py` + `tests/testdata/` | The generator's suite: the pin-shape scenario table, both METADATA schemas, and a run over 19 real AOSP METADATA files asserting the recorded tier split (`parsed=19 tier1=8 tier2=9 tier3=2`). Run `python3 test_shapes.py` from `tests/`. Keep `tests/` out of any tree you scan: the fixtures are real METADATA files, and the generator skips `tests/` and `testdata/` directories as a safety net. |
@@ -125,7 +125,8 @@ Only names, versions and URLs are produced; the generator makes no network calls
 ## Lane notes
 
 **Gradle.** fossa-cli needs the build to resolve: without a JDK, the SDK and reachable repositories it
-exits 0 with zero Gradle dependencies, and the fossa-deps unit alone is uploaded. Validate with
+exits 0 with no Gradle unit, and the fossa-deps unit alone is uploaded; `fossa-scan.sh` fails the run in that case when a
+Gradle build file exists (`FOSSA_EXPECT_GRADLE`). Validate with
 `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` before blaming the scan. By
 default fossa-cli reads every resolved configuration of every module; test and dev configurations are
 excluded by an enumerated list of configuration names (exact matches), and AGP's internal

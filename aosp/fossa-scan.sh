@@ -18,6 +18,9 @@
 #   BRANCH   branch name (default: the git branch, else main)
 #   FOSSA_TEST_TIMEOUT  seconds fossa test waits for the issue scan (default 1200)
 #   FOSSA_TEST_SOFT_FAIL=1  report policy failures without failing the script (default: fossa test's exit code is the script's)
+#   FOSSA_EXPECT_GRADLE=0|1 whether a Gradle unit must be present in the upload (default: 1 when a Gradle build file exists
+#                           in the tree outside external/, prebuilts/, out/; else 0). A missing build environment makes
+#                           fossa-cli exit 0 with NO Gradle unit, which would otherwise pass as a good revision.
 
 set -o errexit
 set -o nounset
@@ -36,6 +39,15 @@ if [ -z "${ANDROID_HOME:-}" ] || [ -z "${JAVA_HOME:-}" ]; then
 fi
 
 mkdir -p .fossa-out
+
+if [ -z "${FOSSA_EXPECT_GRADLE:-}" ]; then
+  if find . \( -path ./external -o -path ./prebuilts -o -path ./out -o -path ./.fossa-out -o -path ./.git \) -prune -o \
+       \( -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'settings.gradle' -o -name 'settings.gradle.kts' \) -print 2>/dev/null | grep -q .; then
+    FOSSA_EXPECT_GRADLE=1
+  else
+    FOSSA_EXPECT_GRADLE=0
+  fi
+fi
 
 # 0. Regenerate fossa-deps.yml from the tree (METADATA -> git references, prebuilt jars -> maven
 #    coordinates; vendored/custom sections come from fossa-deps.base.yml). Offline, idempotent,
@@ -62,13 +74,18 @@ fossa analyze \
   --snippet-scan \
   -r "$REV" -b "$BRANCH" \
   2>&1 | tee ".fossa-out/analyze-$REV.log"
-# fossa analyze exits 0 even when a source unit failed; the fossa-deps unit in particular is dropped
-# whole (every generated and declared entry) if archive upload rejects path filters. Catch that here.
+# fossa analyze exits 0 even when a source unit failed or never appeared. Two cases are checked here:
+#  - the fossa-deps unit is dropped whole (every generated and declared entry) if archive upload rejects path filters;
+#  - the Gradle unit is absent or failed when the build environment is missing (no JDK/SDK/reachable repositories).
 if grep -q "fossa-deps file analysis: failed" ".fossa-out/analyze-$REV.log"; then
   echo "ERROR: the fossa-deps unit was dropped from this upload; see the error lines above and README, 'Path filters and archive uploads'" >&2
   exit 1
 fi
-mv .fossa-out/LAST_REV_PENDING .fossa-out/LAST_REV # reached only if analyze exited 0 and every unit succeeded
+if [ "$FOSSA_EXPECT_GRADLE" = "1" ] && ! grep -q "gradle project in .*: succeeded" ".fossa-out/analyze-$REV.log"; then
+  echo "ERROR: a Gradle build file exists but no Gradle unit succeeded in this upload; the build environment is probably missing (README, 'Lane notes' → Gradle). Set FOSSA_EXPECT_GRADLE=0 for a tree with no Gradle lane." >&2
+  exit 1
+fi
+mv .fossa-out/LAST_REV_PENDING .fossa-out/LAST_REV # reached only if analyze exited 0, the fossa-deps unit succeeded, and the expected Gradle unit succeeded
 
 echo
 echo "fossa test (policy gate; exits non-zero when policy issues exist):"

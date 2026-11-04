@@ -19,6 +19,7 @@ Python 3.10+ (the METADATA generator uses 3.10 syntax), stdlib only, no network.
     --check   exit 2 if fossa-deps.yml would change (for CI: the committed file must match the tree)
 """
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -116,6 +117,9 @@ def git_from_metadata(root, out_dir):
             return [], "parsed=0 (no METADATA files found under the root)"   # the lane floor below decides
         sys.exit("aosp_metadata_scan.py failed:\n" + res.stderr)
     summary = next((l for l in res.stdout.splitlines() if l.startswith("parsed=")), "").strip()
+    for l in res.stderr.splitlines():
+        if l.startswith("warn: unreadable"):
+            print("  note: " + l[len("warn: "):] + " — this component is NOT covered (see coverage.md)")
     text = open(os.path.join(out_dir, "fossa-deps.yml")).read()
     lines, inside = [], False
     for line in text.splitlines():
@@ -148,7 +152,8 @@ def main():
     parts = [HEADER]
     parts.append("  # --- prebuilts/** jars with pom.properties (Soong java_import), generated ---\n")
     for rel, g, a, v in maven:
-        parts.append(f"  - type: maven\n    name: {g}:{a}\n    version: \"{v}\"\n    metadata:\n      description: \"prebuilt {rel}\"\n")
+        parts.append("  - type: maven\n    name: %s\n    version: %s\n    metadata:\n      description: %s\n"
+                     % (json.dumps(f"{g}:{a}"), json.dumps(v), json.dumps(f"prebuilt {rel}")))
     parts.append("  # --- external/* from AOSP METADATA (tier 1: github upstream + resolvable pin), generated ---\n")
     parts.append("\n".join(git_lines) + "\n")
     if base.strip():

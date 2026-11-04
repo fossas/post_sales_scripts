@@ -28,6 +28,7 @@ ENDPOINT="${FOSSA_ENDPOINT:-https://app.fossa.com}"
 enc() { python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"; }
 LOC="custom+${ORG}/${PROJECT}\$${REV}"
 ENC="$(enc "$LOC")"
+RENC="$(enc "$REV")"
 PENC="$(enc "custom+${ORG}/${PROJECT}")"
 H="Authorization: Bearer ${FOSSA_API_KEY}"
 api() { local body; body="$(curl -g -s -f -H "$H" "${ENDPOINT}$1")" || { echo "API call failed (HTTP error): $1" >&2; exit 1; }; printf '%s' "$body"; }
@@ -70,7 +71,7 @@ for r in rows:
 print("   top licenses:", lic.most_common(12))'
 
 echo "== licensing issues (GET /api/v2/issues/statuses, project + revision scope)"
-BODY="$(api "/api/v2/issues/statuses?category=licensing&scope[type]=project&scope[id]=${PENC}&scope[revision]=${REV}")"
+BODY="$(api "/api/v2/issues/statuses?category=licensing&scope[type]=project&scope[id]=${PENC}&scope[revision]=${RENC}")"
 printf '%s' "$BODY" | python3 -c '
 import sys,json; d=json.load(sys.stdin)
 print("   active:", d["issues"]["active"], "| ignored (auto-ignore and manual):", d["issues"]["ignored"])'
@@ -85,8 +86,8 @@ try:
 except Exception as e: print("   (no snippet data on this revision)", e)'
 
 echo "== snippet-kind records (GET /api/revisions/{REV}/snippets?path=/, paged)"
-PAGES=""; for pg in 1 2 3 4 5 6 7 8; do PAGE="$(api "/api/revisions/${ENC}/snippets?path=/&pageSize=50&page=$pg")"; PAGES="${PAGES}${PAGE}
-"; done
+PAGES=""; pg=1; while [ "$pg" -le 400 ]; do PAGE="$(api "/api/revisions/${ENC}/snippets?path=/&pageSize=50&page=$pg")"; PAGES="${PAGES}${PAGE}
+"; printf '%s' "$PAGE" | python3 -c 'import sys,json; d=json.load(sys.stdin); r=d.get("results",[]); t=d.get("totalCount"); sys.exit(0 if r and (t is None or '"$pg"'*50 < t) else 1)' || break; pg=$((pg+1)); done
 printf '%s' "$PAGES" | python3 -c '
 import sys,json
 from collections import Counter
@@ -102,6 +103,7 @@ for raw in sys.stdin.read().split("\n"):
     rows+=page
     if total is not None and len(rows)>=total: break
 if msg: print("  ", msg); sys.exit()
-print("   records:", len(rows), "| totalCount:", total, "| kinds:", dict(Counter(r.get("kind") for r in rows)))
+print("   records:", len(rows), "| totalCount:", total, "| kinds:", dict(Counter(r.get("kind") for r in rows)),
+      "" if total is None or len(rows) >= total else "| TRUNCATED: fewer rows than totalCount were returned")
 for r in rows:
     if r.get("kind")=="snippet": print("     snippet:", r.get("package"), r.get("version"), "match", r.get("highestMatchPercentage"))'
