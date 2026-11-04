@@ -228,7 +228,9 @@ issue scan's status and counts by type, dependency rows by fetcher with any unre
 did not resolve still counts in the revision's dependency total, so check this list, not the total), the
 licensing issue counts split into active and ignored, and the snippet records by top-level path. The
 revision defaults to `.fossa-out/LAST_REV`, which `fossa-scan.sh` writes only after a successful analyze
-in which every unit succeeded (`LAST_REV_PENDING` while a run is in flight).
+in which every unit succeeded (`LAST_REV_PENDING` while a run is in flight). A revision scanned without `--snippet-scan` (an
+organization without the entitlement) reports no snippet records; the script says so and exits 0, which is expected,
+not a failure.
 
 Receipts from the fictional test tree behind `examples/` (a five-module Gradle app, seven `external/`
 projects with real AOSP METADATA files and real upstream sources, two copied-in C libraries without

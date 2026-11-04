@@ -32,7 +32,10 @@ RENC="$(enc "$REV")"
 PENC="$(enc "custom+${ORG}/${PROJECT}")"
 H="Authorization: Bearer ${FOSSA_API_KEY}"
 api() { local body; body="$(curl -g -s -f -H "$H" "${ENDPOINT}$1")" || { echo "API call failed (HTTP error): $1" >&2; exit 1; }; printf '%s' "$body"; }
-# every call below is captured first so that an HTTP failure stops the script before anything tries to parse an empty body
+# every call below is captured first so that an HTTP failure stops the script before anything tries to parse an empty body.
+# The two snippet endpoints answer HTTP 400 ("Snippet analysis does not exist for user revision") for a revision scanned
+# without --snippet-scan, which is expected on organizations without that entitlement; they use the tolerant variant.
+api_opt() { local body; body="$(curl -g -s -H "$H" "${ENDPOINT}$1")" || true; printf '%s' "$body"; }
 
 echo "revision locator: $LOC"
 echo "UI: ${ENDPOINT}/projects/${PENC}/refs/branch/${BRANCH}/${REV}"
@@ -77,17 +80,24 @@ import sys,json; d=json.load(sys.stdin)
 print("   active:", d["issues"]["active"], "| ignored (auto-ignore and manual):", d["issues"]["ignored"])'
 
 echo "== snippets by top-level path (GET /api/revisions/{REV}/snippets/paths?path=/)"
-BODY="$(api "/api/revisions/${ENC}/snippets/paths?path=/")"
+BODY="$(api_opt "/api/revisions/${ENC}/snippets/paths?path=/")"
 printf '%s' "$BODY" | python3 -c '
 import sys,json
 try:
-    d=json.load(sys.stdin); ps=d.get("paths",[])
+    d=json.load(sys.stdin)
+    if isinstance(d,dict) and "message" in d: print("   (no snippet data on this revision: %s)" % d["message"]); sys.exit(0)
+    ps=d.get("paths",[])
     print("   total:", sum(p.get("count",0) for p in ps), "|", ", ".join("%s %s" % (p.get("path"), p.get("count")) for p in ps) or "(none)")
 except Exception as e: print("   (no snippet data on this revision)", e)'
 
 echo "== snippet-kind records (GET /api/revisions/{REV}/snippets?path=/, paged)"
-PAGES=""; pg=1; while [ "$pg" -le 400 ]; do PAGE="$(api "/api/revisions/${ENC}/snippets?path=/&pageSize=50&page=$pg")"; PAGES="${PAGES}${PAGE}
-"; printf '%s' "$PAGE" | python3 -c 'import sys,json; d=json.load(sys.stdin); r=d.get("results",[]); t=d.get("totalCount"); sys.exit(0 if r and (t is None or '"$pg"'*50 < t) else 1)' || break; pg=$((pg+1)); done
+PAGES=""; pg=1; while [ "$pg" -le 400 ]; do PAGE="$(api_opt "/api/revisions/${ENC}/snippets?path=/&pageSize=50&page=$pg")"; PAGES="${PAGES}${PAGE}
+"; printf '%s' "$PAGE" | python3 -c '
+import sys,json
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(1)
+r=d.get("results",[]) if isinstance(d,dict) else []; t=d.get("totalCount") if isinstance(d,dict) else None
+sys.exit(0 if r and (t is None or '"$pg"'*50 < t) else 1)' || break; pg=$((pg+1)); done
 printf '%s' "$PAGES" | python3 -c '
 import sys,json
 from collections import Counter
@@ -103,6 +113,7 @@ for raw in sys.stdin.read().split("\n"):
     rows+=page
     if total is not None and len(rows)>=total: break
 if msg: print("  ", msg); sys.exit()
+if not rows and total is None: print("   (no snippet data on this revision)"); sys.exit()
 line = "   records: %d | totalCount: %s | kinds: %s" % (len(rows), total, dict(Counter(r.get("kind") for r in rows)))
 if total is not None and len(rows) < total: line += " | TRUNCATED: fewer rows than totalCount were returned"
 print(line)
