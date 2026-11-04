@@ -485,7 +485,7 @@ def main() -> int:
     by_dir: dict[str, int] = {}
     for e in entries:
         if e["tier"] == 1:
-            top = str(e["path"]).split("/")[0] or "."
+            top = e["path"].split("/")[0] if "/" in e["path"] else "."   # a root-level METADATA counts under "."
             by_dir[top] = by_dir.get(top, 0) + 1
     tier1_by_dir = ",".join(f"{d}:{n}" for d, n in sorted(by_dir.items())) or "-"
     print(f"parsed={len(entries)} tier1={t(1)} tier2={t(2)} tier3={t(3)} first_party={t(0)} skipped={len(skipped_paths)} unreadable={len(unreadable_paths)} tier1_by_dir={tier1_by_dir}")
