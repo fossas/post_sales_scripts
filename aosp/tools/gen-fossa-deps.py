@@ -114,6 +114,10 @@ def git_from_metadata(root, out_dir):
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         if "no METADATA files found" in res.stderr:
+            for stale in ("aosp-sbom.cdx.json", "coverage.md", "fossa-deps.yml"):   # never leave last run's artifacts beside an empty walk
+                sp = os.path.join(out_dir, stale)
+                if os.path.exists(sp):
+                    os.remove(sp)
             return [], "parsed=0 (no METADATA files found under the root)"   # the lane floor below decides
         sys.exit("aosp_metadata_scan.py failed:\n" + res.stderr)
     summary = next((l for l in res.stdout.splitlines() if l.startswith("parsed=")), "").strip()
@@ -165,6 +169,8 @@ def main():
         parts.append("\n# --- hand-maintained sections (fossa-deps.base.yml) ---\n")
         parts.append(base.rstrip("\n") + "\n")
     content = "".join(parts)
+    target = os.path.join(root, "fossa-deps.yml")
+    current = open(target).read() if os.path.exists(target) else None
 
     # Floor: a lane that exists in the tree but produced nothing is a broken walk, not an empty lane.
     # Refuse to rewrite fossa-deps.yml (the previous file stays in place) so the scan cannot silently
@@ -175,14 +181,19 @@ def main():
         problems.append("prebuilts/ exists but no jar carried META-INF/maven/**/pom.properties: the prebuilt maven lane would be dropped")
     if os.path.isdir(os.path.join(root, "external")) and git_n == 0:
         problems.append("external/ exists but no METADATA produced a tier-1 git entry: the METADATA lane would be dropped")
+    if current is not None:   # the committed file is the baseline: a lane it carried cannot silently come back empty
+        prev_git = len(re.findall(r"^\s*- type: git\s*$", current, re.M))
+        prev_mvn = len(re.findall(r"^\s*- type: maven\s*$", current, re.M))
+        if prev_git and git_n == 0:
+            problems.append(f"the previous fossa-deps.yml carried {prev_git} git entries and this walk produced none")
+        if prev_mvn and not maven:
+            problems.append(f"the previous fossa-deps.yml carried {prev_mvn} maven entries and this walk produced none")
     if problems and not args.allow_empty_lanes:
         for pr in problems:
             print("gen-fossa-deps: ERROR " + pr, file=sys.stderr)
         print("gen-fossa-deps: fossa-deps.yml left unchanged (pass --allow-empty-lanes to override)", file=sys.stderr)
         sys.exit(2)
 
-    target = os.path.join(root, "fossa-deps.yml")
-    current = open(target).read() if os.path.exists(target) else None
     changed = current != content
     print(f"gen-fossa-deps: {git_n} git from METADATA ({summary}); {len(maven)} maven coordinates from {props_read} pom.properties; "
           f"base sections: {'yes' if base.strip() else 'none'}; {'CHANGED' if changed else 'unchanged'}")
